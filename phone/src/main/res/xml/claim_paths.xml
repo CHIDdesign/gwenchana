@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 기록서 보내기(ClaimShare.kt): 만든 PDF(캐시)와 현장 사진만 다른 앱에 빌려준다 -->
+<paths>
+    <cache-path name="claims" path="claims/" />
+    <files-path name="photos" path="photos/" />
+</paths>

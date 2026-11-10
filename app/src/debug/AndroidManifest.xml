@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 시연 도구 전용. release APK 에는 들어가지 않는다 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name=".SimInstaller"
+            android:authorities="com.askthecar.sim"
+            android:exported="false" />
+        <receiver
+            android:name=".SimReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.askthecar.START" />
+                <action android:name="com.askthecar.TEST_CRASH" />
+                <action android:name="com.askthecar.RESET" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".SimCoverService"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/sim_cover_service" />
+        </service>
+        <activity
+            android:name=".SimProfileActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:theme="@style/Theme.AskTheCar.Translucent"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true">
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
+        <activity
+            android:name=".NaviActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:launchMode="singleTask">
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
+    </application>
+</manifest>

@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>사고 3D 재구성</title>
+<style>
+  @font-face { font-family: 'Asta'; src: url('/res/font/asta_sans.ttf'); font-weight: 300 800; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Asta', sans-serif; background: transparent; }
+  #c { position: fixed; left: 0; top: 0; display: block; touch-action: none; }
+  /* 범례는 오른쪽 위 작게: 왼쪽 위는 앱 꼬리표, 아래는 재생 막대라 차를 가리지 않게 */
+  #legend { position: fixed; right: 12px; top: 12px; font-size: 15px; line-height: 1.5; padding: 6px 10px; border-radius: 0; }
+  #msg { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; font-size: 24px; text-align: center; padding: 24px; }
+  .dot { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 8px; vertical-align: -1px; }
+</style>
+<script type="importmap">{ "imports": { "three": "./three.module.js" } }</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="legend"></div>
+<div id="player">
+  <button id="pp" aria-label="재생"></button>
+  <div id="bar"><input id="seek" type="range" min="0" max="1000" value="0"><i id="mark"></i></div>
+  <span id="clock"></span>
+</div>
+<style>
+  #player { position: fixed; left: 16px; right: 16px; bottom: 16px; height: 88px; display: none; align-items: center; gap: 24px; padding: 0 24px; box-sizing: border-box; font-size: 26px; font-family: inherit; }
+  #pp { width: 64px; height: 64px; border: 0; border-radius: 0; font-size: 26px; flex: none; }
+  #bar { position: relative; flex: 1; height: 56px; display: flex; align-items: center; }
+  #seek { width: 100%; margin: 0; height: 56px; background: transparent; }
+  #mark { position: absolute; top: 8px; bottom: 8px; width: 4px; background: #fe3d16; pointer-events: none; }
+  #clock { flex: none; white-space: pre; text-align: right; font-size: 22px; line-height: 1.3; }
+  /* 기록 화면(시안 2A): 앱 바닥이 그대로 보이고 재생 막대만 유리. 뒤에 장면이 지나가는 유일한 자리 */
+  body.floor #legend { display: none; }
+  body.floor #player { left: 80px; right: auto; width: 976px; bottom: 24px; height: 100px; padding: 8px; gap: 16px; border-radius: 32px;
+    color: #131417 !important; background: rgb(255 255 255 / .72) !important; -webkit-backdrop-filter: blur(24px) saturate(140%); backdrop-filter: blur(24px) saturate(140%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .85), inset 0 0 0 1px rgb(255 255 255 / .22), inset 0 -1px 0 rgb(19 20 23 / .1), 0 8px 32px rgb(0 0 0 / .16), 0 2px 2px rgb(0 0 0 / .08); }
+  body.floor #pp { width: 84px; height: 84px; border-radius: 24px; background: #44464e !important; color: #fff !important; display: flex; align-items: center; justify-content: center; }
+  body.floor #seek { -webkit-appearance: none; appearance: none; }
+  body.floor #seek::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, #131417 var(--p, 0%), rgb(19 20 23 / .25) 0); }
+  body.floor #seek::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border-radius: 12px; background: #131417; }
+  body.floor #bar, body.floor #seek { height: 84px; } /* 시안 2A: 빨간 충돌선 4x56(여백 14 그대로) */
+  body.floor #mark { top: 14px; bottom: 14px; background: #d32016; border-radius: 2px; box-shadow: 0 0 0 6px #fff; }
+  body.floor #clock { font-size: 28px; line-height: 36px; font-feature-settings: 'tnum'; }
+  body.floor.dark #player { color: #fff !important; background: rgb(29 30 33 / .8) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / .18), 0 8px 32px rgb(0 0 0 / .16), 0 2px 2px rgb(0 0 0 / .08); }
+  body.floor.dark #pp { background: #e0e1e6 !important; color: #131417 !important; }
+  body.floor.dark #seek::-webkit-slider-runnable-track { background: linear-gradient(90deg, #fff var(--p, 0%), rgb(255 255 255 / .3) 0); }
+  body.floor.dark #seek::-webkit-slider-thumb { background: #fff; }
+  body.floor.dark #mark { background: #f2483a; box-shadow: 0 0 0 6px #1d1e21; }
+  /* 휴대폰 세로 화면 */
+  @media (max-width: 560px) {
+    #legend { right: 8px; top: 8px; font-size: 12px; line-height: 1.4; padding: 6px 8px; border-radius: 0; }
+    .dot { width: 10px; height: 10px; margin-right: 6px; }
+    #player { left: 8px; right: 8px; bottom: 8px; height: 52px; gap: 10px; padding: 0 8px; }
+    #pp { width: 40px; height: 40px; font-size: 16px; }
+    #bar, #seek { height: 40px; }
+    #clock { font-size: 12px; }
+    #msg { font-size: 16px; }
+  }
+</style>
+<div id="msg"></div>
+<script type="module">
+// 사고 장면 3D. 앱(Scene3D.kt)이 window.show(데이터)로 장면을 넘긴다. mode: scene / photo / replay
+// 좌표: 앱은 x=앞, y=왼쪽(미터), yaw=반시계 라디안 → three.js 는 X=-y, Z=-x, rotation.y=yaw (차 앞 = -Z)
+// 주행 규제(애니메이션 금지): 재현 재생 중에만 움직이고, 그 밖엔 만질 때만 다시 그린다. 앱은 정차 중에만 이 화면을 보여 준다.
+import * as THREE from 'three';
+import { OrbitControls } from './OrbitControls.js';
+import { GLTFLoader } from './GLTFLoader.js';
+import { clone as cloneSkinned } from './SkeletonUtils.js';
+
+const canvas = document.getElementById('c');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+} catch (e) {
+  document.getElementById('msg').style.display = 'flex';
+  document.getElementById('msg').textContent = '이 화면에서는 3D를 표시할 수 없어요.';
+  window.Android?.fail();
+  throw e;
+}
+const scene = new THREE.Scene();
+// 주변 반사: 밝은 하늘·어두운 지평선·위쪽 큰 조명. 없으면 차 도장과 유리가 납작하게 보인다
+function makeEnv() {
+  const s = new THREE.Scene();
+  const g = new THREE.SphereGeometry(50, 32, 24), col = [], p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const h = p.getY(i) / 50, v = h > 0 ? 0.55 + 0.75 * Math.pow(h, 0.6) : h > -0.08 ? 0.16 : 0.42;
+    col.push(v, v, v * 1.02);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  s.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  for (const [x, y, z, w, h, v] of [[0, 40, 0, 50, 22, 1.7], [40, 14, 16, 16, 12, 2.2], [-40, 14, -16, 16, 12, 1.6]]) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(v, v, v), side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.lookAt(0, 0, 0); s.add(m);
+  }
+  return new THREE.PMREMGenerator(renderer).fromScene(s, 0.02).texture;
+}
+scene.environment = makeEnv();
+scene.environmentIntensity = 0.85;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8d94, 0.5));
+const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+sun.position.set(12, 24, 10);
+scene.add(sun);
+let grid = null;
+const world = new THREE.Group();
+scene.add(world);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 600);
+const controls = new OrbitControls(camera, canvas);
+controls.maxPolarAngle = Math.PI / 2.05;
+const render = () => renderer.render(scene, camera);
+controls.addEventListener('change', render);
+
+// 앱 WebView 는 처음 높이 0으로 시작해서 CSS(100%, vh)가 0에 머문다(에뮬레이터 확인) → 창 크기로 직접 맞춘다
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  if (!w || !h) return;
+  // 앱 좌표(1096dp 폭)에 맞춘다. WebView 의 CSS 픽셀은 dp 와 같지 않을 수 있다(에뮬레이터에서 1.4배로 커졌음)
+  player.style.zoom = data?.floor ? w / 1096 : '';
+  // 기록 화면(floor): 도로선·궤적이 유리 재생 막대 뒤로 비쳐 화면 바닥까지 이어지지 않게 막대 가운데에서 3D 를 자른다(재현 때만 막대가 있음)
+  canvas.style.clipPath = data?.floor && data?.mode === 'replay' ? `inset(0 0 ${(24 + 50) * w / 1096}px 0)` : '';
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 차 화면은 큰 해상도라 1.5배까지만(그리기 부담)
+  camera.aspect = w / h;
+  // 상황 화면: 왼쪽 위 안내 카드에 가리지 않게 장면을 오른쪽 아래로. 크기가 0일 때 계산하면 그림이 사라지므로 여기서만 정한다
+  if (data?.mode === 'scene') camera.setViewOffset(w, h, -w * 0.16, -h * 0.12, w, h);
+  else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+  render();
+}
+window.addEventListener('resize', resize);
+
+const P = (p, h = 0) => new THREE.Vector3(-p.y, h, -p.x);
+const place = (o, p) => { o.position.copy(P(p)); o.rotation.y = p.yaw; };
+
+// 직접 만든 차(design/car), 사람은 Kenney CC0 (models/). [파일, 길이 m(사람은 키)]. 못 읽으면 아래 상자 차로 그린다
+const MODELS = { ioniq: ['car/ioniq5', 4.64], sedan: ['car/sedan', 4.5], suv: ['car/suv', 4.7], van: ['car/van', 5.0], truck: ['car/truck', 7.0], bus: ['car/bus', 11.0],
+  person: ['people/person', 1.7] };
+const loaded = {};
+// 길이(사람은 키)를 맞추고 바닥에 세움. 길이 방향을 Z 로, 앞을 -Z 로(이 화면 규약)
+function fit(obj, size, tall) {
+  let b = new THREE.Box3().setFromObject(obj), s = b.getSize(new THREE.Vector3());
+  if (!tall && s.x > s.z) { obj.rotation.y = Math.PI / 2; b = new THREE.Box3().setFromObject(obj); s = b.getSize(new THREE.Vector3()); }
+  obj.rotation.y += MODEL_FLIP;
+  obj.scale.multiplyScalar(size / (tall ? s.y : s.z));
+  b = new THREE.Box3().setFromObject(obj); const c = b.getCenter(new THREE.Vector3());
+  obj.position.set(-c.x, -b.min.y, -c.z);
+  const sharp = renderer.capabilities.getMaxAnisotropy(); // 비스듬히 볼 때 유리·램프 경계가 흐려지지 않게
+  obj.traverse(o => {
+    if (!o.isMesh) return;
+    o.userData.shared = true;
+    for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap']) if (o.material[k]) o.material[k].anisotropy = sharp;
+  });
+  const g = new THREE.Group(); g.add(obj);
+  if (!tall) g.add(contactShadow(s.x * size / s.z, size));
+  return g;
+}
+// 차 밑 그림자(바닥에 붙어 보이게). 실제 그림자 계산은 무거워서 그림 한 장으로
+let shadowTex = null;
+function contactShadow(w, l) {
+  if (!shadowTex) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d'), gr = x.createRadialGradient(128, 128, 30, 128, 128, 128);
+    gr.addColorStop(0, 'rgba(10,12,16,.55)'); gr.addColorStop(.7, 'rgba(10,12,16,.35)'); gr.addColorStop(1, 'rgba(10,12,16,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 256, 256);
+    shadowTex = new THREE.CanvasTexture(c);
+  }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.3, l * 1.16), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = 0.012;
+  m.userData.shared = m.userData.keepMaterial = true;
+  return m;
+}
+const MODEL_FLIP = Math.PI; // 모델은 +Z 를 바라봄(화면으로 확인)
+const gltf = new GLTFLoader();
+Promise.allSettled(Object.entries(MODELS).map(([k, [f, size]]) =>
+  gltf.loadAsync(`./models/${f}.glb`).then(g => { loaded[k] = fit(g.scene, size, k === 'person'); })))
+  .then(r => { r.filter(x => x.status === 'rejected').forEach(x => console.warn('3D 모델 못 읽음', x.reason)); if (data) show(data); });
+
+// 모델 복제: 지오메트리·텍스처는 공유, 재질만 새로. 추정(ghost)은 색칠 없이 회색 반투명(내 차와 구분)
+function model(kind, { ghost = false, dark = false, color = 0 } = {}) {
+  const g = cloneSkinned(loaded[kind]); // 사람 모델은 뼈대가 있어 일반 clone 이면 안 보임
+  const meshes = [];
+  g.traverse(o => { if (o.isMesh && !o.userData.keepMaterial) meshes.push(o); });
+  for (const o of meshes) {
+    if (!ghost) { o.material = o.material.clone(); continue; }
+    const n = o.material.name, tone = n === 'glass' ? 0.55 : n === 'tire' || n === 'trim' ? 0.4 : 1;
+    o.material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(tone), roughness: 0.6, transparent: true, opacity: dark ? 0.8 : 0.55 });
+    // 깊이만 먼저 그려 반투명 차의 안쪽 면(반대편 바퀴 등)이 비치지 않게
+    const depth = o.clone(); depth.material = new THREE.MeshBasicMaterial({ colorWrite: false }); depth.userData.keepMaterial = true;
+    o.parent.add(depth);
+  }
+  return g;
+}
+
+// 자동차: 모델이 있으면 모델, 없으면 차체 + 유리 + 바퀴 + 전조등·후미등 상자. 길이 4.5m, 폭 1.85m
+function car(body, { ghost = false, dark = false } = {}, kind = 'sedan') {
+  if (loaded[kind] || loaded.sedan) return model(loaded[kind] ? kind : 'sedan', { ghost, dark, color: body });
+  const g = new THREE.Group();
+  // 다크 바탕(#1d1e21)에선 반투명 회색 차·검은 유리가 바닥에 묻혀 안 보였음 → 더 불투명하게, 유리는 밝게
+  const op = ghost ? { transparent: true, opacity: dark ? 0.8 : 0.4 } : {};
+  const paint = new THREE.MeshStandardMaterial({ color: body, roughness: 0.45, metalness: 0.1, ...op });
+  const glass = new THREE.MeshStandardMaterial({ color: dark ? 0x686a72 : 0x1d1e21, roughness: 0.2, ...op });
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.55, 4.5), paint); lower.position.y = 0.55;
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 2.3), glass); cabin.position.set(0, 1.07, 0.25);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.9), paint); roof.position.set(0, 1.36, 0.3);
+  g.add(lower, cabin, roof);
+  const tire = new THREE.MeshStandardMaterial({ color: 0x2a2b30, ...op });
+  for (const [x, z] of [[-0.88, -1.45], [0.88, -1.45], [-0.88, 1.45], [0.88, 1.45]]) {
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.26, 20), tire);
+    w.rotation.z = Math.PI / 2; w.position.set(x, 0.36, z); g.add(w);
+  }
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 0.04), new THREE.MeshBasicMaterial({ color: 0xffffff, ...op }));
+  lamp.position.set(0, 0.72, -2.27); g.add(lamp);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 0.04), new THREE.MeshBasicMaterial({ color: 0xfe3d16, ...op }));
+  tail.position.set(0, 0.72, 2.27); g.add(tail);
+  return g;
+}
+// 내 차: 전기 해치백 윤곽(길이 4.64·폭 1.89·높이 1.6m). 앞 = -Z. 로고·실제 도면 없이 직접 그린 대략 모양
+function ownCar(dark) {
+  const g = new THREE.Group();
+  const paint = new THREE.MeshStandardMaterial({ color: 0xc9cdd2, roughness: 0.42, metalness: 0.25 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: dark ? 0x4a4c52 : 0x1d1e21, roughness: 0.18 });
+  const extrude = (pts, width, mat) => {
+    const s = new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(z, y)));
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: width, bevelEnabled: false }), mat);
+    m.rotation.y = -Math.PI / 2; m.position.x = width / 2; g.add(m); return m;
+  };
+  extrude([[-2.32, 0.28], [-2.32, 0.78], [-2.08, 0.93], [-1.38, 1.03], [-0.72, 1.53], [1.78, 1.6], [2.26, 1.14], [2.32, 0.96], [2.32, 0.28]], 1.84, paint);
+  extrude([[-1.25, 1.07], [-0.7, 1.48], [1.74, 1.55], [2.14, 1.17], [2.14, 1.06]], 1.87, glassMat); // 옆 유리
+  extrude([[-1.32, 1.06], [-0.74, 1.55], [-0.64, 1.53], [-1.2, 1.05]], 1.6, glassMat); // 앞 유리
+  extrude([[1.8, 1.62], [2.26, 1.17], [2.19, 1.13], [1.73, 1.57]], 1.6, glassMat); // 뒤 유리
+  const cladding = new THREE.MeshStandardMaterial({ color: 0x3a3c42, roughness: 0.7 });
+  extrude([[-2.33, 0.26], [-2.33, 0.48], [2.33, 0.48], [2.33, 0.26]], 1.86, cladding); // 아래쪽 검은 범퍼·문턱
+  const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.5, 0.09), paint); pillar.position.set(0, 1.27, 0.45); g.add(pillar); // 가운데 기둥
+  const tire = new THREE.MeshStandardMaterial({ color: 0x24252a, roughness: 0.8 });
+  const rim = new THREE.MeshStandardMaterial({ color: 0x9a9da3, roughness: 0.35, metalness: 0.5 });
+  for (const [x, z] of [[-0.86, -1.5], [0.86, -1.5], [-0.86, 1.5], [0.86, 1.5]]) {
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.37, 0.25, 24), tire);
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.26, 12), rim);
+    t.rotation.z = r.rotation.z = Math.PI / 2; t.position.set(x, 0.37, z); r.position.set(x, 0.37, z); g.add(t, r);
+  }
+  // 네모 점 전조등·후미등
+  const pixel = (color, z) => { for (const side of [-1, 1]) for (let i = 0; i < 4; i++) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.03), new THREE.MeshBasicMaterial({ color }));
+    p.position.set(side * (0.5 + i * 0.12), 0.74, z); g.add(p);
+  } };
+  pixel(0xffffff, -2.335); pixel(0xfe3d16, 2.335);
+  return g;
+}
+function wall(color) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 0.4), new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.55 }));
+  m.position.y = 0.6; m.rotation.y = Math.PI / 2; const g = new THREE.Group(); g.add(m); return g;
+}
+function person(color) {
+  const g = new THREE.Group(), mat = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.55 });
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 1.1, 16), mat); b.position.y = 0.55;
+  const h = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), mat); h.position.y = 1.35;
+  g.add(b, h); return g;
+}
+function badge(text, bg, fg) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 56, 0, Math.PI * 2); x.fill();
+  x.lineWidth = 6; x.strokeStyle = fg; x.stroke();
+  x.fillStyle = fg; x.font = 'bold 70px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 64, 70);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+  s.scale.set(1.5, 1.5, 1); return s;
+}
+
+// 화면을 바꿀 때 GPU 쪽 메모리(지오메트리·재질·텍스처)를 돌려준다
+function disposeTree(o) {
+  o.traverse(c => {
+    if (c.userData.shared) { for (const m of [].concat(c.material || [])) m.dispose(); return; } // 모델 원본은 계속 씀
+    c.geometry?.dispose();
+    for (const m of [].concat(c.material || [])) { m.map?.dispose(); m.dispose(); }
+  });
+}
+
+// WebGL 선은 굵기가 1px 로 고정이라 평평한 띠로 그린다
+function ribbon(pts, width, color, y) {
+  const pos = [], idx = [], n = pts.length;
+  pts.forEach((p, i) => {
+    const a = pts[Math.max(i - 1, 0)], b = pts[Math.min(i + 1, n - 1)];
+    const dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1, nx = -dz / l * width / 2, nz = dx / l * width / 2;
+    pos.push(p.x + nx, y, p.z + nz, p.x - nx, y, p.z - nz);
+    if (i < n - 1) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+}
+// 점선: 경로를 따라 on 만큼 그리고 off 만큼 건너뜀
+function dashed(pts, width, color, y, on, off) {
+  const g = new THREE.Group();
+  let cur = [], left = on, drawing = true;
+  for (let i = 1; i < pts.length; i++) {
+    let a = pts[i - 1].clone(); const b = pts[i];
+    for (let d = a.distanceTo(b); d > 1e-6; d = a.distanceTo(b)) {
+      const step = Math.min(d, left), next = a.clone().lerp(b, step / d);
+      if (drawing) { if (!cur.length) cur.push(a.clone()); cur.push(next.clone()); }
+      a = next; left -= step;
+      if (left <= 1e-6) { if (drawing && cur.length > 1) g.add(ribbon(cur, width, color, y)); cur = []; drawing = !drawing; left = drawing ? on : off; }
+    }
+  }
+  if (cur.length > 1) g.add(ribbon(cur, width, color, y));
+  return g;
+}
+const ahead = p => new THREE.Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
+const sideOf = p => new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
+// 기록 화면의 바닥 그림: 도로선은 실제 도로 자료가 아니라 궤적을 따라 그린 참고선이다(앱 범례에 적음). 궤적 = 실선, 충돌 뒤 = 점선, 충격 = 꺾쇠
+function drawFloor(d, end) {
+  const ink = d.dark ? 0xffffff : 0x131417, road = d.dark ? 0xc7c9ce : 0x686a72, signal = d.dark ? 0xf2483a : 0xd32016;
+  const own = d.own, ci = d.crashIndex;
+  const path = own.slice(0, ci + 1);
+  let travelled = 0; for (let i = 1; i < path.length; i++) travelled += P(path[i]).distanceTo(P(path[i - 1]));
+  const base = (travelled > 5 ? path : [{ x: end.x - Math.cos(end.yaw) * 80, y: end.y - Math.sin(end.yaw) * 80, yaw: end.yaw }, end]).slice();
+  const line = off => {
+    const pts = base.map(p => P(p).add(sideOf(p).multiplyScalar(off)));
+    pts.push(P(end).add(sideOf(end).multiplyScalar(off)).add(ahead(end).multiplyScalar(60)));
+    return pts;
+  };
+  world.add(ribbon(line(-3.2), 0.07, road, 0.02), ribbon(line(5.8), 0.07, road, 0.02), dashed(line(1.9), 0.07, road, 0.02, 1.4, 1.9));
+  if (path.length > 1 && travelled > 0.05) world.add(ribbon(path.map(p => P(p)), 0.14, ink, 0.03));
+  const after = own.slice(ci).map(p => P(p));
+  if (after.length > 1) world.add(dashed(after, 0.14, ink, 0.03, 0.12, 0.42));
+  if (d.impact) {
+    // 꺾쇠는 범퍼 밖 1m, 1.5배 크기, 상대 차 보닛 위 높이에 항상 앞에 그린다: 바닥에 두면 바로 뒤에 붙은 상대 차에 가려졌음(검수 2026-11-10)
+    const c = P(end), dir = P(d.impact).sub(c).setY(0).normalize(), a = Math.atan2(dir.z, dir.x), edge = P(d.impact).sub(c).setY(0).length() + 1.0, tip = c.clone().add(dir.clone().multiplyScalar(edge));
+    const arm = t => tip.clone().add(new THREE.Vector3(Math.cos(a + t) * 1.1, 0, Math.sin(a + t) * 1.1));
+    const chev = ribbon([arm(0.8), tip, arm(-0.8)], 0.25, signal, 1.2);
+    chev.material.depthTest = false; chev.renderOrder = 10; world.add(chev);
+  }
+}
+const ICON = { pause: '<svg width="40" height="40" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><rect x="13" y="10" width="8" height="28" rx="1.5"/><rect x="27" y="10" width="8" height="28" rx="1.5"/></svg>',
+  play: '<svg width="40" height="40" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M15 9.6C15 8.4 16.3 7.7 17.3 8.3L39 22.7C39.9 23.3 39.9 24.7 39 25.3L17.3 39.7C16.3 40.3 15 39.6 15 38.4Z"/></svg>' };
+const setPlay = isPaused => { pp.innerHTML = isPaused ? ICON.play : ICON.pause; pp.setAttribute('aria-label', isPaused ? '재생' : '멈춤'); };
+
+let data = null, me = null, playing = 0, estObj = null, estIdx = -1, legendItems = [];
+
+// 상대: 사람·자전거는 사람 모델, 차는 카메라가 본 종류(estModel: sedan/truck/bus), 모르면 세단
+// 상대는 회색 반투명(유채색은 충격 꺾쇠 빨강 하나)
+const makeEst = k => k === 'wall' ? wall(data?.dark ? 0xc7c9ce : 0xa4a8ae)
+  : k === 'person' ? (loaded.person ? model('person', { ghost: true, dark: !!data?.dark, color: data?.dark ? 0xc7c9ce : 0xa4a8ae }) : person(data?.dark ? 0xc7c9ce : 0xa4a8ae))
+  : car(data?.dark ? 0xc7c9ce : 0xa4a8ae, { ghost: true, dark: !!data?.dark }, data?.estModel || 'sedan');
+const estLegend = (k, from) => {
+  const what = k === 'wall' ? '벽·시설물' : k === 'person' ? '사람·자전거' : '상대 차';
+  return `<span class="dot" style="background:#a4a8ae"></span>${what} · 충돌 순간 위치 [${from === 'camera' ? '영상 분석 추정' : '추정'}]`;
+};
+const showLegend = () => { document.getElementById('legend').innerHTML = legendItems.join('<br>'); };
+
+function show(d) {
+  data = d;
+  playing++; // 번호를 되돌리면 옛 재생 루프가 살아남아 재생이 빨라진다
+  disposeTree(world); world.clear();
+  const dark = !!d.dark;
+  // 내비 지도처럼 옅은 바닥: 격자는 아주 옅게, 멀어질수록 바탕색으로 사라짐(안개)
+  const bg = dark ? 0x1d1e21 : 0xf3f4f7;
+  const floor = !!d.floor;
+  document.body.classList.toggle('floor', floor);
+  document.body.classList.toggle('dark', dark);
+  scene.background = floor ? null : new THREE.Color(bg);
+  scene.fog = floor ? null : new THREE.Fog(bg, 18, 60);
+  if (grid) { scene.remove(grid); disposeTree(grid); grid = null; }
+  if (!floor) { grid = new THREE.GridHelper(160, 80, dark ? 0x313236 : 0xe1e3e8, dark ? 0x26272b : 0xe9ebef); scene.add(grid); }
+  const panel = dark ? 'rgba(49,50,54,0.92)' : 'rgba(255,255,255,0.92)', ink = dark ? '#ffffff' : '#131417';
+  for (const id of ['legend', 'msg']) { const el = document.getElementById(id); el.style.background = panel; el.style.color = ink; }
+
+  const own = d.own, end = own[d.crashIndex] || own[own.length - 1];
+  const upto = d.mode === 'replay' ? own : own.slice(0, d.crashIndex + 1);
+  if (floor) drawFloor(d, end);
+  else if (upto.length > 1) world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(upto.map(p => P(p, 0.04))),
+    new THREE.LineBasicMaterial({ color: dark ? 0xe0e1e6 : 0x44464e })));
+  me = loaded.ioniq ? model('ioniq') : ownCar(dark); place(me, end); world.add(me); // models/car/ioniq5.glb 가 있으면 그 모델
+  const ownCss = '#b4afa8';
+  const items = [`<span class="dot" style="background:${ownCss};border:1px solid #a4a8ae"></span>내 차 (기록으로 추정한 움직임)`];
+  estObj = null; estIdx = -1;
+  if (d.est && (!floor || d.mode === 'scene')) { // 기록 화면은 차가 아는 것만 그린다(상대 차 모양·위치는 차가 모름). 대상 고르기(scene)만 고른 대상을 보여 준다
+    estObj = makeEst(d.estKind);
+    place(estObj, d.est); world.add(estObj);
+    estIdx = items.length;
+    items.push(estLegend(d.estKind, d.estFrom));
+  }
+  if (d.impact) {
+    if (!floor) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.35, 20, 14), new THREE.MeshBasicMaterial({ color: dark ? 0xf2483a : 0xd32016 }));
+      m.position.copy(P(d.impact, 0.75)); world.add(m);
+    }
+    items.push(`<span class="dot" style="background:${dark ? '#f2483a' : '#d32016'};border-radius:50%"></span>충격이 들어온 쪽 [추정]`);
+  }
+  if (d.spots) {
+    d.spots.forEach((s, i) => {
+      const l = badge(String(i + 1), '#ffffff', '#131417'); l.position.copy(P(s, 2.2)); world.add(l); // 흰 바탕·검정 테두리 번호(빨강은 충격 자리에만)
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.2), new THREE.MeshBasicMaterial({ color: dark ? 0xc7c9ce : 0x686a72 }));
+      pole.position.copy(P(s, 1.1)); world.add(pole);
+    });
+    items.push('<span class="dot" style="background:#fff;border:1px solid #131417;border-radius:50%"></span>찍을 위치 (번호 순서)');
+  }
+  if (d.route) {
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(d.route.map(p => P(p, 0.06))),
+      new THREE.LineDashedMaterial({ color: dark ? 0xc7c9ce : 0x686a72, dashSize: 0.6, gapSize: 0.4 }));
+    line.computeLineDistances(); world.add(line);
+    items.push('<span class="dot" style="border:2px dashed #686a72"></span>영상 촬영 동선 (앱 제안)');
+  }
+  legendItems = items; showLegend();
+  const replaying = d.mode === 'replay';
+  player.style.display = replaying ? 'flex' : 'none';
+  player.style.background = panel; player.style.color = ink;
+  pp.style.background = ink; pp.style.color = dark ? '#131417' : '#ffffff';
+  seek.style.accentColor = ink;
+
+
+  const c = P(end);
+  let dist = 14;
+  // 내 차·추정 물체·촬영 위치가 모두 화면에 들어오게
+  const extra = [...(d.spots || []), ...(d.est ? [d.est] : [])];
+  if (extra.length) {
+    const pts = [c.clone(), ...extra.map(s => P(s))];
+    c.set(0, 0, 0); pts.forEach(p => c.add(p)); c.divideScalar(pts.length);
+    dist = Math.max(d.spots?.length ? 18 : 14, 2.4 * Math.max(...pts.map(p => p.distanceTo(c))));
+  }
+  controls.target.copy(c);
+  camera.position.set(c.x + dist * 0.55, dist * 0.8, c.z + dist * 0.75);
+  const camD = camera.position.distanceTo(c); if (scene.fog) { scene.fog.near = camD * 1.05; scene.fog.far = camD * 2.6; } // 차는 선명, 먼 바닥만 흐려짐
+  controls.maxDistance = replaying ? 40 : Infinity;
+  controls.update();
+  resize();
+  render();
+  if (replaying) startReplay();
+}
+
+// 사고 종류 칩만 바뀔 때: 카메라는 그대로 두고 "상대" 물체만 바꾼다. 충격 방향으로 놓은 위치는 종류별 거리(far)에 맞춰 옮김
+function setKind(k, far) {
+  if (!data || !estObj) return;
+  const own = data.own, end = own[data.crashIndex] || own[own.length - 1];
+  let est = data.est;
+  if (data.estFrom === 'impact' && data.far) {
+    const e = data.edge || 0, f = (e + far) / (e + data.far); // 중심 거리 = 내 차 겉면까지 + 종류별 거리
+    est = { x: end.x + (est.x - end.x) * f, y: end.y + (est.y - end.y) * f, yaw: est.yaw };
+  }
+  disposeTree(estObj); world.remove(estObj);
+  estObj = makeEst(k); place(estObj, est); world.add(estObj);
+  data.est = est; data.far = far; data.estKind = k;
+  legendItems[estIdx] = estLegend(k, data.estFrom); showLegend();
+  render();
+}
+
+// 재현: 기록 시간 그대로(충돌 10초 전 ~ 3초 후) 내 차를 움직이고 반복한다. 카메라는 3인칭으로 내 차를 따라가고, 끌어서 돌려 볼 수 있다.
+// 아래 막대로 재생·멈춤·시간 이동. 그리기 부담을 줄이려고 30fps 로 제한
+const player = document.getElementById('player'), pp = document.getElementById('pp'), seek = document.getElementById('seek');
+const clock = document.getElementById('clock'), mark = document.getElementById('mark');
+let replayT = 0, paused = false, scrubbing = false;
+const FLOOR_LEAD = 4, FLOOR_DIST = 28;
+const UP = new THREE.Vector3(0, 1, 0);
+function showAt(t) {
+  const own = data.own, times = data.times;
+  replayT = t;
+  let i = 0; while (i < times.length - 2 && times[i + 1] <= t) i++;
+  const j = Math.min(i + 1, own.length - 1), span = (times[j] - times[i]) || 1, f = Math.max(0, Math.min(1, (t - times[i]) / span));
+  let dy = own[j].yaw - own[i].yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+  const pose = { x: own[i].x + (own[j].x - own[i].x) * f, y: own[i].y + (own[j].y - own[i].y) * f, yaw: own[i].yaw + dy * f };
+  let turn = pose.yaw - me.rotation.y; turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+  const offset = camera.position.clone().sub(controls.target).applyAxisAngle(UP, turn);
+  place(me, pose);
+  if (data.floor) controls.target.copy(me.position).addScaledVector(ahead(pose), -FLOOR_LEAD).setY(0);
+  else controls.target.set(me.position.x, 0.8, me.position.z);
+  camera.position.copy(controls.target).add(offset);
+  controls.update();
+  if (grid) grid.position.set(Math.round(me.position.x / 2) * 2, 0, Math.round(me.position.z / 2) * 2); // 바닥이 끝나지 않게 차를 따라감
+  const t0 = times[0], t1 = times[times.length - 1];
+  if (!scrubbing) seek.value = (t - t0) / ((t1 - t0) || 1) * 1000;
+  seek.style.setProperty('--p', `${seek.value / 10}%`);
+  const label = t < -0.05 ? `충돌 ${t.toFixed(1)}초` : t > 0.05 ? `충돌 +${t.toFixed(1)}초` : '충돌';
+  const kph = data.speeds?.[i];
+  if (data.floor) clock.textContent = `${t < -0.05 ? t.toFixed(1) + '초' : t > 0.05 ? '+' + t.toFixed(1) + '초' : '충돌'}${kph == null ? '' : ' · ' + kph + ' km/h'}`;
+  else clock.textContent = kph == null ? label : `${label}
+시속 ${kph}km`;
+  render();
+}
+function startReplay() {
+  const times = data.times, t0 = times[0], t1 = times[times.length - 1];
+  paused = false; setPlay(false);
+  mark.style.left = `${(0 - t0) / ((t1 - t0) || 1) * 100}%`;
+  // 내 차 바로 뒤, 조금 위에서 시작
+  const first = data.own[0];
+  place(me, first);
+  controls.target.set(me.position.x, 0.8, me.position.z);
+  if (data.floor) { // 약 70도로 내려다보고 차는 화면 위쪽 1/3에, 지나온 궤적이 아래로 보이게
+    controls.target.copy(me.position).addScaledVector(ahead(first), -FLOOR_LEAD).setY(0);
+    camera.position.copy(controls.target).addScaledVector(ahead(first), -FLOOR_DIST * 0.342).setY(FLOOR_DIST * 0.94);
+  } else camera.position.set(me.position.x + Math.sin(first.yaw) * 7.5, 3.2, me.position.z + Math.cos(first.yaw) * 7.5);
+  const id = ++playing;
+  let last = performance.now(), wait = 0, plays = 1;
+  showAt(t0);
+  function frame(now) {
+    if (id !== playing) return;
+    requestAnimationFrame(frame);
+    const dt = now - last;
+    if (dt < 33) return;
+    last = now;
+    if (paused || scrubbing) return;
+    if (replayT >= t1) { // 끝나면 1.5초 쉬고 처음부터. 켜 둔 채 계속 돌면 CPU·GPU 를 먹어서(휴대폰만 2.5코어) 3번 뒤 멈춘다
+      if (plays >= 3) { paused = true; setPlay(true); return; }
+      wait += dt; if (wait > 1500) { wait = 0; plays++; showAt(t0); }
+      return;
+    }
+    showAt(Math.min(t1, replayT + Math.min(dt, 100) / 1000));
+  }
+  requestAnimationFrame(frame);
+}
+pp.addEventListener('click', () => {
+  paused = !paused; setPlay(paused);
+  const a = data.times;
+  if (!paused && replayT >= a[a.length - 1]) showAt(a[0]); // 끝나 멈춘 뒤 누르면 처음부터
+});
+seek.addEventListener('pointerdown', () => { scrubbing = true; });
+seek.addEventListener('input', () => { const a = data.times; showAt(a[0] + seek.value / 1000 * (a[a.length - 1] - a[0])); });
+for (const e of ['pointerup', 'pointercancel', 'change']) seek.addEventListener(e, () => { scrubbing = false; });
+
+// 기록지 행을 누르면 그 시각으로 (충돌 기준 초)
+window.seekTo = t => { if (!data?.times) return; const a = data.times; paused = true; setPlay(true); showAt(Math.max(a[0], Math.min(a[a.length - 1], t))); };
+window.show = show;
+window.setKind = setKind;
+resize();
+</script>
+</body>
+</html>

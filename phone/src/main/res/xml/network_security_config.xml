@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 출시용: 평문 HTTP 금지(HTTPS 만). 시연용 PC 서버 평문 허용은 src/debug 의 같은 이름 파일이 덮어씀 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

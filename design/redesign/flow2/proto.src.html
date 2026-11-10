@@ -1,0 +1,304 @@
+<title>사고 뒤 화면 시안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Asta+Sans:wght@300..800&display=swap">
+<style>
+/* 레이아웃: 바깥은 조용한 비교대, 안쪽은 Theme.kt 토큰을 그대로 쓴 실제 크기 화면(라이트) */
+:root{--page:#ECEDF1;--page-fg:#131417;--page-sub:#55575F;--page-card:#F7F8FA;--page-line:rgba(19,20,23,.12);
+--ink:#131417;--sec:#44464E;--ter:#686A72;--bg:#F7F8FA;--card:#FFFFFF;--line:rgba(19,20,23,.10);--basic:rgba(19,20,23,.05);--filled:#44464E;--red:#D32016;--night:#17181C;--night2:#25272D}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#121316;--page-fg:#F2F3F5;--page-sub:#A4A8AE;--page-card:#1D1F24;--page-line:rgba(255,255,255,.14);color-scheme:dark}}
+:root[data-theme="dark"]{--page:#121316;--page-fg:#F2F3F5;--page-sub:#A4A8AE;--page-card:#1D1F24;--page-line:rgba(255,255,255,.14);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--page-fg);font-family:'Asta Sans','Noto Sans KR','Malgun Gothic',sans-serif;word-break:keep-all;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1.page{font-size:30px;line-height:38px;margin:0;font-weight:800;text-wrap:balance}
+.lead{margin:6px 0 0;font-size:16px;line-height:24px;color:var(--page-sub);max-width:70ch}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tabs button{height:44px;padding:0 18px;border-radius:14px;border:1px solid var(--page-line);background:transparent;color:var(--page-fg);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--page-fg);color:var(--page);border-color:transparent}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.diff>div{background:var(--page-card);border-radius:18px;padding:16px 18px;min-width:0}
+.diff h2{margin:0 0 6px;font-size:18px;line-height:26px}
+.diff p{margin:0;font-size:15px;line-height:23px;color:var(--page-sub)}
+.row-lab{font-size:15px;font-weight:700;margin:10px 0 8px}
+.rowx{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.cell{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cell small{font-size:13px;line-height:18px;color:var(--page-sub)}
+.jump{display:flex;flex-wrap:wrap;gap:6px}
+.jump button{height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--page-line);background:transparent;color:var(--page-fg);font:inherit;font-size:13px;cursor:pointer}
+.jump button[aria-pressed=true]{background:var(--page-fg);color:var(--page)}
+.note{font-size:14px;line-height:22px;color:var(--page-sub);margin:0;max-width:90ch}
+.dev{position:relative;flex:none;max-width:100%}
+.scr{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;color:var(--ink);font-family:inherit;font-feature-settings:"tnum"}
+.phone{width:412px;height:915px;border-radius:40px;background:var(--bg);box-shadow:0 0 0 1px rgba(19,20,23,.16)}
+.car{width:2554px;height:1208px;background:#fff;border-radius:16px;box-shadow:0 0 0 1px rgba(19,20,23,.16)}
+.static .scr{pointer-events:none}
+button{cursor:pointer}
+.scr button{font-family:inherit;border:none;transition:transform .15s cubic-bezier(.16,1,.3,1)}
+.scr button:active,.tap:active{transform:scale(.95)}
+.scr :focus-visible,.tabs :focus-visible,.jump :focus-visible{outline:3px solid #0064FF;outline-offset:2px}
+.a{position:absolute}
+.fx{display:flex;align-items:center}
+.sb{justify-content:space-between}
+.col{display:flex;flex-direction:column}
+.grow{flex:1;min-width:0}
+svg.ic{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8;flex:none}
+/* 휴대폰 공통 */
+.st{height:32px;padding:10px 24px 0;font-size:13px;display:flex;justify-content:space-between;color:var(--ter);flex:none}
+.gb{position:absolute;left:141px;bottom:8px;width:130px;height:5px;border-radius:3px;background:rgba(19,20,23,.3)}
+.hd{height:56px;padding:0 16px 0 20px;display:flex;align-items:center;justify-content:space-between;flex:none}
+.logo{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.icb{width:44px;height:44px;border-radius:14px;background:var(--basic);display:grid;place-items:center;color:var(--ink);padding:0}
+.btn{height:56px;border-radius:16px;font-size:17px;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px}
+.pri{background:var(--filled);color:#fff}.secd{background:var(--basic);color:var(--ink)}.red{background:var(--red);color:#fff}.wht{background:#E0E1E6;color:var(--ink)}.glass{background:rgba(255,255,255,.12);color:#fff}
+.cd{background:var(--card);border-radius:24px;box-shadow:0 6px 24px rgba(19,20,23,.08)}
+.h24{font-size:24px;line-height:32px;font-weight:800}.h30{font-size:30px;line-height:38px;font-weight:800;letter-spacing:-.4px}
+.t18{font-size:18px;line-height:26px;font-weight:700}.b16{font-size:16px;line-height:24px;color:var(--sec)}.b15{font-size:15px;line-height:22px;color:var(--sec)}.c13{font-size:13px;line-height:18px;color:var(--ter)}.c14{font-size:14px;line-height:20px;color:var(--ter)}
+.chip{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:9px;background:var(--basic);font-size:13px;color:var(--sec);white-space:nowrap}
+.onnight .chip{background:rgba(255,255,255,.12);color:#D7D9DF}
+.onnight{color:#fff}.onnight .c14,.onnight .c13{color:#A4A8AE}.onnight .b16,.onnight .b15{color:#C7C9CE}
+.past{height:76px;display:flex;align-items:center;gap:12px;padding:0 14px;text-align:left;background:var(--card);border-radius:20px;width:100%;color:var(--ink);box-shadow:0 2px 10px rgba(19,20,23,.05)}
+.dock{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 26px;background:rgba(247,248,250,.86);backdrop-filter:blur(18px);display:flex;flex-direction:column;gap:8px}
+.contact{background:var(--card);border-radius:18px;padding:12px 14px;min-width:0;text-align:left;box-shadow:0 2px 10px rgba(19,20,23,.05)}
+.log{display:grid;grid-template-columns:62px 1fr;column-gap:10px;font-size:15px;line-height:22px;padding:6px 0}
+.log span:first-child{color:var(--ter);font-size:13px;line-height:22px}
+.new{animation:rise .6s cubic-bezier(.16,1,.3,1) both}
+.seg{display:flex;gap:4px;padding:4px;background:var(--basic);border-radius:14px}
+.seg button{flex:1;height:44px;border-radius:11px;background:transparent;color:var(--ter);font-size:16px;font-weight:700}
+.seg button[aria-pressed=true]{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(19,20,23,.1)}
+.toc{height:48px;display:flex;align-items:center;gap:10px;font-size:16px;width:100%;background:transparent;color:var(--ink);padding:0;text-align:left}
+.sw{width:46px;height:28px;border-radius:14px;background:rgba(19,20,23,.16);position:relative;transition:background .2s;flex:none}
+.sw i{position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:11px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .25s cubic-bezier(.16,1,.3,1)}
+.sw.on{background:var(--filled)}.sw.on i{left:21px}
+.pick{height:44px;padding:0 14px;border-radius:13px;background:var(--basic);color:var(--ink);font-size:15px;font-weight:700;white-space:nowrap}
+.pick[aria-pressed=true]{background:var(--filled);color:#fff}
+.tog{height:40px;padding:0 12px;border-radius:12px;background:transparent;box-shadow:inset 0 0 0 1.5px rgba(19,20,23,.16);color:var(--ter);font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.tog[aria-pressed=true]{background:rgba(68,70,78,.12);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--filled)}
+.tog:disabled{cursor:default}
+.sheetb{position:absolute;inset:0;background:rgba(19,20,23,.42);animation:fade .25s both}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:24px 20px 34px;animation:up .35s cubic-bezier(.16,1,.3,1) both;display:flex;flex-direction:column;gap:10px}
+.toast{position:absolute;left:16px;right:16px;bottom:96px;background:var(--night);color:#fff;border-radius:16px;padding:14px 16px;font-size:15px;line-height:22px;animation:up .3s cubic-bezier(.16,1,.3,1) both}
+.pg{background:#fff;color:#131417;box-shadow:0 2px 14px rgba(19,20,23,.16);border-radius:6px;overflow:hidden;position:relative}
+.pgin{width:560px;height:792px;transform-origin:0 0;padding:44px 40px;font-size:18px;line-height:26px}
+.pgin h3{margin:0 0 4px;font-size:30px;line-height:38px}.pgin h4{margin:22px 0 8px;font-size:19px;line-height:26px}
+.pgin table{width:100%;border-collapse:collapse}.pgin td{border-top:1px solid rgba(19,20,23,.12);padding:7px 0;font-size:17px;line-height:24px}.pgin td:first-child{color:#686A72;width:34%}
+/* 차 공통 */
+.left{position:absolute;left:0;top:0;width:854px;height:1208px}
+.win{position:absolute;left:854px;top:0;width:1700px;height:1208px;background:linear-gradient(#FFF 0,#FFF 190px,#F1F1F1 290px,#EEE 1028px);overflow:hidden}
+.floor{position:absolute;left:0;top:1030px;width:1700px;height:178px;background:#fff;border-top:2px solid #E0E0E0}
+.cb{height:100px;border-radius:32px;font-size:32px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:14px;padding:0 36px;white-space:nowrap}
+.cicb{width:100px;height:100px;border-radius:32px;background:var(--basic);display:grid;place-items:center;padding:0;color:var(--ink)}
+.h60{font-size:60px;line-height:80px;font-weight:800;margin:0;letter-spacing:-.6px}.h44{font-size:44px;line-height:58px;font-weight:800;margin:0}
+.b30{font-size:30px;line-height:40px;color:var(--sec)}.b26{font-size:26px;line-height:36px;color:var(--ter)}
+.ccd{background:#fff;border-radius:48px;box-shadow:0 12px 40px rgba(19,20,23,.08);color:var(--ink);padding:0;text-align:left}
+.cchip{display:inline-flex;gap:8px;align-items:center;height:52px;padding:0 20px;border-radius:16px;background:var(--basic);font-size:26px;color:var(--sec);white-space:nowrap}
+.onnight .cchip{background:rgba(255,255,255,.12);color:#D7D9DF}
+.recbar{position:absolute;left:0;bottom:0;height:5px;background:var(--ink);animation:fill 10s linear both}
+.reclab{position:absolute;right:48px;bottom:30px;font-size:26px;line-height:34px;color:var(--ter);display:flex;align-items:center;gap:10px}
+.dot{width:14px;height:14px;border-radius:7px;background:var(--red);animation:blink 1.2s ease-in-out infinite}
+.ctoast{position:absolute;left:80px;right:80px;bottom:190px;background:var(--night);color:#fff;border-radius:28px;padding:30px 36px;font-size:30px;line-height:40px;display:flex;align-items:center;justify-content:space-between;gap:30px;animation:up .3s cubic-bezier(.16,1,.3,1) both}
+.hit{animation:hit .9s cubic-bezier(.16,1,.3,1) both}
+.carin{animation:rise .7s cubic-bezier(.16,1,.3,1) both}
+@keyframes hit{0%{opacity:0;transform:translateY(22px) scale(1.3)}60%{opacity:1;transform:none}75%{transform:translateY(-3px)}100%{transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes fill{from{width:0}to{width:100%}}
+@keyframes blink{50%{opacity:.25}}
+::view-transition-group(*){animation-duration:.42s;animation-timing-function:cubic-bezier(.16,1,.3,1)}
+@media (prefers-reduced-motion:reduce){*,::view-transition-group(*){animation:none!important;transition:none!important}}
+.static *{animation:none!important}
+.static .recbar{width:70%}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1 class="page">사고 뒤 화면 시안</h1>
+    <p class="lead">정리한 기록을 누구에게 어떻게 보내는지까지 이어지는 흐름입니다. 2안 모두 스크롤 없이 한 화면에 들어가고, 글자 링크가 없습니다. 값과 이름은 전부 예시입니다.</p>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="보기 고르기"></nav>
+  <div id="main" class="col" style="gap:20px"></div>
+</div>
+
+<script>
+const IMG={top:"{{CAR_TOP}}",rear:"{{CAR_REAR}}",left:"{{LEFT}}"};
+const P={back:'<path d="M15 5l-7 7 7 7"/>',gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',chev:'<path d="M9 5l7 7-7 7"/>',plus:'<path d="M12 5v14M5 12h14"/>',flame:'<path d="M12 3c1 3.5 5 5 5 10a5 5 0 0 1-10 0c0-2.2 1-3.5 2-4.6.3 1.4 1 2.3 2 2.6-.5-2.3.3-5.5 1-8z"/>',lock:'<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>',ask:'<path d="M4 5.5h16v10H10l-4 3.5v-3.5H4z"/>',doc:'<path d="M7 3.5h7l4 4v13H7z M14 3.5v4h4M9.5 12h5M9.5 15.5h5"/>',photo:'<rect x="3.5" y="5" width="17" height="14" rx="1.5"/><circle cx="9" cy="10" r="1.7"/><path d="M20.5 15.5l-5-4.5-8 8"/>',send:'<path d="M4 12l16-8-6 16-3-6.5z"/>',play:'<path d="M8 5.5v13l10-6.5z"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>',phone:'<path d="M5 4h3.5l1.7 4.3-2.2 1.5a11 11 0 0 0 6.2 6.2l1.5-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5C10.5 20 4 13.5 3.5 5.6A1.5 1.5 0 0 1 5 4z"/>',undo:'<path d="M8 6L4 10l4 4M4 10h10a5.5 5.5 0 0 1 0 11h-3"/>'};
+const ic=(n,s=24,sw)=>`<svg class="ic" viewBox="0 0 24 24" width="${s}" height="${s}" ${sw?`style="stroke-width:${sw}"`:''} aria-hidden="true">${P[n]}</svg>`;
+// 옆모습 차·벽·사람: 48 격자, 한 굵기 (위에서 본 모양 금지)
+const KIND={vehicle:'<path d="M9.2 32H4.6v-5.4c0-2 1.1-3.2 3-3.7l6-1.3 5.4-6.4c1-1.2 2.3-1.8 3.9-1.8h10.3c1.7 0 3.1.7 4.1 2.1l3.9 5.9c1.5.7 2.3 2.2 2.3 4V32h-3.1M17.8 32h13.3"/><circle cx="13.5" cy="32" r="4.3"/><circle cx="35.4" cy="32" r="4.3"/><path d="M15.8 21.5h23.6M27.2 13.6v7.9"/>',object:'<path d="M6 13.5h36V38H6zM6 21.7h36M6 29.8h36M15 13.5v8.2M27 13.5v8.2M39 13.5v8.2M9 21.7v8.1M21 21.7v8.1M33 21.7v8.1M15 29.8V38M27 29.8V38M39 29.8V38"/>',person:'<circle cx="24" cy="10.5" r="5"/><path d="M24 17v13M13.5 25.5L24 19.5l10.5 6M24 30l-7.5 13M24 30l7.5 13"/>'};
+const kind=(k,s,c='currentColor')=>`<svg viewBox="0 0 48 48" width="${s}" height="${s}" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KIND[k]}</svg>`;
+
+let S,V='both';
+const init=()=>({p:'alert',c:'first',sheet:null,sent:false,to:'other',inc:def('other'),tab:'todo',page:0,fa:false,order:[0,1,2],empty:false,toast:null,cToast:null,preview:false,kind:null});
+function def(to){return to==='mine'?{photo:true,stmt:true,loc:true,contact:true,policy:true}:{photo:true,stmt:false,loc:false,contact:false,policy:false}}
+const TO={other:{n:'상대 보험사 담당자',s:'기록판',d:'차 기록과 사진만 보내요'},mine:{n:'내 보험사 담당자',s:'전체판',d:'차 기록 전부와 내 진술까지 보내요'},police:{n:'경찰 조사관',s:'기록판 + 원본',d:'조사관이 말한 방법으로 보내세요'}};
+const CASES=[{d:'오늘 14:02',p:'성동구 왕십리로',k:'뒤쪽 충격',s:'진행 중'},{d:'9월 3일 18:12',p:'하남 지하주차장',k:'벽·시설물',s:'기록만 보관'},{d:'5월 21일 08:30',p:'송파구 오륜동',k:'차 · 앞쪽 충격',s:'정리 끝'}];
+const task=s=>s.sent?{h:'기다리는 중이에요',l:'전화가 오면 차 기록으로 답하세요',b:'차에게 묻기',a:'toast:ask',i:'ask'}:{h:'담당자에게\n기록을 보내세요',l:'상대 보험사 · 김 담당자가 요청했어요',b:'기록 보내기',a:'p:send',i:'send'};
+const vt=(n,live)=>live?`view-transition-name:${n};`:'';
+const nl=t=>t.replace(/\n/g,'<br>');
+const stbar=()=>`<div class="st"><span>14:58</span><span>5G 82%</span></div>`;
+// 뒤쪽 충격 표시
+const topCar=(h,live)=>`<div style="position:relative;height:${h}px;width:${h*.54}px;flex:none"><img src="${IMG.top}" alt="위에서 본 내 차" style="height:${h}px;display:block">
+<svg class="a hit" viewBox="0 0 72 40" width="${h*.2}" height="${h*.11}" style="left:${h*.17}px;top:${h*.965}px" fill="none" stroke="#D32016" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 34L36 8l28 26"/></svg></div>`;
+const rearCar=(w,bk=true)=>`<div style="position:relative;width:${w}px;height:${w*.614}px;flex:none"><img src="${IMG.rear}" alt="뒤에서 본 내 차" style="width:${w}px;display:block">${bk?`<div class="a" style="left:${w*.015}px;top:${w*.455}px;width:${w*.13}px;height:${w*.072}px;transform:rotate(45deg)"><svg class="hit" viewBox="0 0 72 40" width="100%" height="100%" fill="none" stroke="#FF4B39" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 34L36 8l28 26"/></svg></div>`:''}</div>`;
+const miniTop=h=>`<img src="${IMG.top}" alt="" style="height:${h}px;flex:none">`;
+
+/* ── 휴대폰 ─────────────────────────────── */
+function pAlert(v,s){const dark=v==='B';return `<div class="col ${dark?'onnight':''}" style="height:100%;background:${dark?'var(--night)':'#fff'}">${stbar().replace('var(--ter)','#999')}
+<div class="col grow" style="padding:56px 24px 0;align-items:center;text-align:center">
+<div class="fx" style="gap:8px;color:var(--red);font-weight:700;font-size:17px"><span class="dot" style="width:10px;height:10px"></span>진동·소리와 함께</div>
+<div class="h30 carin" style="font-size:36px;line-height:46px;margin-top:14px">사고가 감지됐어요</div>
+<div class="c14" style="font-size:17px;line-height:26px;margin-top:8px">14:02:07 · 뒤쪽 충격 [센서 추정]</div>
+<div style="margin-top:44px">${dark?rearCar(340):topCar(340)}</div></div>
+<div style="padding:0 16px 38px"><button class="btn ${dark?'wht':'pri'}" style="height:64px;font-size:20px" data-a="p:home">안내 보기</button></div></div>`}
+
+function pHomeA(s,live){const t=task(s);if(s.empty)return homeEmptyA(s);return `<div class="col" style="height:100%">${stbar()}
+<div class="hd"><span class="logo">괜차나</span><button class="icb" aria-label="설정" data-a="toast:set">${ic('gear')}</button></div>
+<div style="padding:4px 16px 0"><button class="cd tap" data-a="p:detail" style="display:block;width:100%;text-align:left;padding:22px 20px 20px;position:relative;overflow:hidden;background:#fff;color:var(--ink);${vt('hero',live)}">
+ <div class="c14">오늘 14:02 · 성동구 왕십리로</div>
+ <div class="h30" style="margin-top:10px;min-height:76px;width:240px">${nl(t.h)}</div>
+ <div class="b15" style="margin-top:8px;width:220px">${t.l}</div>
+ <div class="a" style="right:22px;top:24px">${topCar(216)}</div>
+ <div class="fx" style="gap:6px;margin-top:56px"><span class="chip">${ic('lock',14)}기록 저장</span><span class="chip">${ic('check',14)}접수 0042</span></div>
+</button>
+<div class="col" style="gap:8px;margin-top:10px"><button class="btn pri" data-a="${t.a}">${ic(t.i,20)}${t.b}</button>
+${s.sent?'':`<button class="btn secd" data-a="toast:ask">${ic('ask',20)}차에게 묻기</button>`}</div></div>
+<div class="fx sb" style="padding:22px 20px 10px"><span class="t18">지난 사고</span><span class="c14">2건</span></div>
+<div class="col" style="gap:8px;padding:0 16px">${CASES.slice(1).map(c=>`<button class="past tap" data-a="toast:past">${miniTop(56)}<span class="grow"><span class="t18" style="font-size:17px;display:block">${c.d}</span><span class="c14">${c.k} · ${c.s}</span></span>${ic('chev',20)}</button>`).join('')}</div>
+<div class="dock"><button class="btn secd" data-a="toast:manual">${ic('plus',20)}차가 못 본 사고 기록하기</button></div><div class="gb"></div></div>`}
+
+const READY=[['보험사 번호','!'],['가족 연락처','!'],['알림 허용','ok'],['차와 연결','ok']];
+const readyRows=()=>READY.map(([n,st])=>`<button class="toc" data-a="toast:set" style="height:56px"><span class="grow" style="font-weight:700">${n}</span>${st==='ok'?`<span class="fx" style="gap:4px;color:var(--ter);font-size:15px">${ic('check',18)}됐어요</span>`:`<span style="color:var(--red);font-weight:700;font-size:15px">넣기</span>`}${ic('chev',18)}</button>`).join('');
+function homeEmptyA(s){return `<div class="col" style="height:100%">${stbar()}<div class="hd"><span class="logo">괜차나</span><button class="icb" aria-label="설정" data-a="toast:set">${ic('gear')}</button></div>
+<div style="padding:12px 20px 0"><div class="h30">아직 사고가 없어요</div><div class="b16" style="margin-top:8px">사고가 나면 차가 먼저 알려 드려요.</div></div>
+<div class="cd" style="margin:24px 16px 0;padding:10px 20px"><div class="t18" style="padding:12px 0 6px">미리 넣어 두면 빨라요</div>${readyRows()}</div>
+<div class="dock"><button class="btn secd" data-a="toast:manual">${ic('plus',20)}차가 못 본 사고 기록하기</button></div><div class="gb"></div></div>`}
+
+function pHomeB(s,live){const t=task(s);if(s.empty)return `<div class="col" style="height:100%">${stbar()}<div class="hd"><span class="logo">괜차나</span><button class="icb" aria-label="설정" data-a="toast:set">${ic('gear')}</button></div>
+<div class="onnight" style="margin:4px 16px 0;height:330px;background:var(--night);border-radius:32px;padding:24px;position:relative;overflow:hidden"><div class="h30">사고가 나면<br>먼저 알려 드려요</div><div class="a" style="left:40px;top:128px;opacity:.95">${rearCar(300,false)}</div></div>
+<div style="padding:8px 20px 0">${readyRows()}</div>
+<div class="dock"><button class="btn secd" data-a="toast:manual">${ic('plus',20)}차가 못 본 사고 기록하기</button></div><div class="gb"></div></div>`;
+const o=s.order,base=88+4,H=470,strip=74;
+const cards=o.map((ci,i)=>{const c=CASES[ci];if(i===0){const tt=ci===0?t:{h:c.k,l:c.p+' · '+c.s,b:'기록 보기',a:'toast:past',i:'doc'};return `<div class="a onnight" style="left:16px;right:16px;top:${base}px;height:${H}px;background:var(--night);border-radius:32px;z-index:3;overflow:hidden;box-shadow:0 14px 30px rgba(19,20,23,.28);${vt('hero',live)}">
+<button class="a tap" data-a="${ci===0?'p:detail':'toast:past'}" aria-label="사고 카드 열기" style="inset:0;background:transparent;padding:24px;text-align:left;color:#fff;display:flex;flex-direction:column;justify-content:flex-start"><div class="c14" style="color:#A4A8AE">${c.d} · ${c.p}</div><div class="h30" style="margin-top:8px">${nl(tt.h)}</div>${ci===0?`<div class="b15" style="margin-top:6px;color:#C7C9CE">${tt.l}</div>`:''}</button>
+<div class="a carin" style="left:42px;top:${ci===0?176:170}px;pointer-events:none">${rearCar(296,ci===0)}</div>
+<div class="a fx" style="left:16px;right:16px;bottom:16px;gap:8px"><button class="btn wht grow" data-a="${tt.a}">${ic(tt.i,20)}${tt.b}</button>${ci===0&&!s.sent?`<button class="btn glass" style="width:132px;font-size:16px" data-a="toast:ask">${ic('ask',18)}묻기</button>`:''}</div></div>`}
+ const top=base+H-30+(i-1)*strip+(i>1?0:0);const shade=i===1?'#FFFFFF':'#E9EAEF';
+ return `<button class="a tap fx" data-a="stack:${i}" style="left:${16+i*8-8}px;right:${16+i*8-8}px;top:${top}px;height:${strip+30}px;background:${shade};border-radius:0 0 28px 28px;z-index:${3-i};padding:30px 18px 0;gap:12px;color:var(--ink);text-align:left;box-shadow:0 8px 18px rgba(19,20,23,.1)">${miniTop(50)}<span class="grow"><span style="font-weight:700;font-size:17px;display:block;line-height:24px">${c.d}</span><span class="c14">${c.k} · ${c.s}</span></span></button>`}).join('');
+return `<div style="height:100%;position:relative">${stbar()}<div class="hd"><span class="logo">괜차나</span><button class="icb" aria-label="설정" data-a="toast:set">${ic('gear')}</button></div>${cards}
+<div class="dock" style="background:none;backdrop-filter:none"><button class="btn secd" style="background:#E7E8EC" data-a="toast:manual">${ic('plus',20)}차가 못 본 사고 기록하기</button></div><div class="gb"></div></div>`}
+
+const LOG=s=>[...(s.sent?[['방금',`${TO[s.to].n}에게 ${TO[s.to].s}을 보냈다고 표시함`,1]]:[]),['16:20','상대 보험사 김 담당자 연락처를 넣었어요'],['15:40','블랙박스 카드를 챙겼어요'],['15:05','내 보험사 접수 · 2026-1110-0042'],['14:02','기록 잠김 · 지문 3fa8c1…']];
+const contacts=()=>[['상대 보험사','김 담당자','010-****-1234'],['내 보험사','접수번호','2026-1110-0042']];
+function pDetailA(s,live){const t=task(s);const logs=LOG(s).slice(0,3);return `<div class="col" style="height:100%;${vt('hero',live)}background:var(--bg)">${stbar()}
+<div class="hd" style="padding-left:12px"><button class="icb" aria-label="뒤로" data-a="p:home">${ic('back')}</button><span class="t18">오늘 14:02 사고</span><button class="icb" aria-label="기록 전체 보기" data-a="toast:rec">${ic('doc')}</button></div>
+<div class="fx" style="padding:4px 20px 10px;gap:14px">${topCar(112)}<div class="grow"><div style="font-weight:700;font-size:20px;line-height:28px">뒤쪽 충격 <span class="c14">[센서 추정]</span></div><div class="c14" style="margin-top:2px;font-size:15px">성동구 왕십리로 · 시내</div><div class="fx" style="gap:6px;margin-top:10px"><span class="chip">${ic('lock',14)}기록 저장</span><span class="chip">${ic('check',14)}휴대폰 도착</span></div></div></div>
+<div class="cd" style="margin:0 16px;padding:18px 18px 16px"><div class="c14">다음 할 일</div><div class="h24" style="margin-top:2px">${t.h.replace('\n',' ')}</div><button class="btn pri" style="margin-top:12px" data-a="${t.a}">${ic(t.i,20)}${t.b}</button>${s.sent?`<button class="btn secd" style="margin-top:8px" data-a="p:send">${ic('send',20)}다시 보내기</button>`:`<button class="btn secd" style="margin-top:8px" data-a="toast:ask">${ic('ask',20)}차에게 묻기</button>`}</div>
+<div class="fx sb" style="padding:18px 20px 8px"><span class="t18">연락 상대</span><button class="tog" data-a="toast:add" style="height:36px">${ic('plus',16)}추가</button></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px">${contacts().map(c=>`<div class="contact"><div class="c13">${c[0]}</div><div style="font-weight:700;font-size:16px;line-height:24px">${c[1]}</div><div class="c13">${c[2]}</div></div>`).join('')}</div>
+<div class="fx sb" style="padding:16px 20px 2px"><span class="t18">일지</span><button class="tog" data-a="toast:log" style="height:36px">전체 ${LOG(s).length}건</button></div>
+<div style="padding:0 20px">${logs.map(l=>`<div class="log ${l[2]?'new':''}"><span>${l[0]}</span><span>${l[1]}</span></div>`).join('')}</div><div class="gb"></div></div>`}
+
+function pDetailB(s,live){const t=task(s);const tab=s.tab;
+const todo=`<div class="c14" style="margin-top:14px">다음 할 일</div><div class="h24" style="margin-top:2px">${t.h.replace('\n',' ')}</div><div class="b15" style="margin-top:4px">${t.l}</div>
+<div class="fx sb" style="margin:18px 0 8px"><span class="t18">연락 상대</span><button class="tog" data-a="toast:add" style="height:36px">${ic('plus',16)}추가</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${contacts().map(c=>`<div class="contact"><div class="c13">${c[0]}</div><div style="font-weight:700;font-size:16px;line-height:24px">${c[1]}</div><div class="c13">${c[2]}</div></div>`).join('')}</div>`;
+const log=`<div style="margin-top:12px">${LOG(s).map((l,i,a)=>`<div class="${l[2]?'new':''}" style="display:grid;grid-template-columns:16px 58px 1fr;column-gap:8px;padding-bottom:18px;position:relative"><i style="width:11px;height:11px;border-radius:6px;background:${i?'#A4A8AE':'var(--filled)'};margin-top:6px"></i>${i<a.length-1?'<i class="a" style="left:5px;top:20px;bottom:-4px;width:1px;background:rgba(19,20,23,.18)"></i>':''}<span class="c13" style="line-height:24px">${l[0]}</span><span style="font-size:16px;line-height:24px">${l[1]}</span></div>`).join('')}</div>`;
+const rec=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">${[['play','사고 재현','3D · 40초'],['doc','기록서','PDF 3쪽'],['photo','사진','4장'],['mic','내 진술','0:32']].map(x=>`<button class="contact tap" data-a="toast:rec" style="height:122px;display:flex;flex-direction:column;justify-content:space-between;color:var(--ink)">${ic(x[0],26)}<span><span style="font-weight:700;font-size:17px;display:block">${x[1]}</span><span class="c13">${x[2]}</span></span></button>`).join('')}</div>`;
+return `<div style="height:100%;position:relative;background:var(--bg)"><div class="onnight" style="height:286px;background:var(--night);border-radius:0 0 32px 32px;position:relative;overflow:hidden;${vt('hero',live)}">${stbar().replace('var(--ter)','#A4A8AE')}<div class="fx sb" style="padding:4px 12px 0"><button class="icb" style="background:rgba(255,255,255,.12);color:#fff" aria-label="뒤로" data-a="p:home">${ic('back')}</button></div>
+<div class="a" style="left:80px;top:50px">${rearCar(270)}</div><div class="a" style="left:20px;right:20px;bottom:14px;display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-weight:700;font-size:18px;line-height:26px">오늘 14:02 · 뒤쪽 충격</div><div class="c13">[센서 추정] · 성동구 왕십리로</div></div><span class="chip">${ic('lock',14)}기록 저장</span></div></div>
+<div style="padding:12px 16px 0"><div class="seg" role="tablist">${[['todo','할 일'],['log','일지'],['rec','기록']].map(x=>`<button data-a="tab:${x[0]}" aria-pressed="${tab===x[0]}">${x[1]}</button>`).join('')}</div><div style="padding:0 4px">${tab==='todo'?todo:tab==='log'?log:rec}</div></div>
+${tab==='todo'?`<div class="dock"><div class="fx" style="gap:8px"><button class="btn pri grow" data-a="${t.a}">${ic(t.i,20)}${t.b}</button>${s.sent?'':`<button class="btn secd" style="width:112px" data-a="toast:ask">묻기</button>`}</div></div>`:''}<div class="gb"></div></div>`}
+
+function pdfPage(s,i,w){const k=w/560,h=792*k,inc=s.inc;const G=`<svg viewBox="0 0 480 120" width="480" height="120" fill="none" aria-hidden="true"><line x1="0" y1="110" x2="480" y2="110" stroke="#13141733" stroke-width="2"/><path d="M0 40C90 36 150 44 220 66S290 110 310 110H440" stroke="#131417" stroke-width="4" stroke-linecap="round"/><line x1="440" y1="4" x2="440" y2="110" stroke="#D32016" stroke-width="3"/><text x="404" y="20" font-size="16" fill="#D32016">충돌</text></svg>`;
+const pg=[`<h3>사고 기록서</h3><div style="color:#686A72">받는 사람 · ${TO[s.to].n} (${TO[s.to].s})</div><h4>요약</h4><table><tr><td>일시</td><td>2026-11-10 14:02:07</td></tr>${inc.loc?'<tr><td>장소</td><td>서울 성동구 왕십리로</td></tr>':''}<tr><td>충격 방향</td><td>뒤쪽 [센서 추정]</td></tr><tr><td>접수번호</td><td>2026-1110-0042</td></tr><tr><td>지문</td><td>3fa8c1…</td></tr></table><h4>충돌 전 30초 속도</h4>${G}<div style="margin-top:18px;color:#686A72">뒤 쪽은 차가 기록한 값 그대로입니다.</div>`,
+`<h3>시간순 기록</h3><table><tr><td>-12.0초</td><td>시속 38km · 브레이크 밟음</td></tr><tr><td>-6.4초</td><td>시속 0km · 브레이크 밟음</td></tr><tr><td>0.0초</td><td>뒤쪽 충격 [센서 추정] 3.1g</td></tr><tr><td>+0.8초</td><td>시속 4km</td></tr><tr><td>+2.2초</td><td>비상등 켜짐</td></tr><tr><td>+9.6초</td><td>시속 0km</td></tr></table>${inc.stmt?'<h4>운전자 진술</h4><div>빨간불에 서 있었는데 뒤에서 충격이 있었어요.</div>':''}`,
+`<h3>사진과 운전자</h3>${inc.photo?`<h4>사진 4장</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${Array(4).fill('<div style="height:130px;background:#E0E1E6;border-radius:6px"></div>').join('')}</div>`:'<h4>사진</h4><div style="color:#686A72">넣지 않음</div>'}<h4>운전자</h4><table>${inc.contact?'<tr><td>연락처</td><td>010-****-5678</td></tr>':'<tr><td>연락처</td><td>보내는 사람이 제외함</td></tr>'}${inc.policy?'<tr><td>증권번호</td><td>AB-1234-5678</td></tr>':'<tr><td>증권번호</td><td>보내는 사람이 제외함</td></tr>'}</table>`];
+return `<div class="pg" style="width:${w}px;height:${h}px"><div class="pgin" style="transform:scale(${k})">${pg[i]}</div></div>`}
+const INC=[['photo','사진 4장'],['stmt','내 진술'],['loc','위치'],['contact','내 연락처'],['policy','증권번호']];
+function toRow(s,gap=6){return `<div class="fx" style="gap:${gap}px;flex-wrap:wrap">${Object.keys(TO).map(k=>`<button class="pick" aria-pressed="${s.to===k}" data-a="to:${k}">${{other:'상대 보험사',mine:'내 보험사',police:'경찰'}[k]}</button>`).join('')}</div>`}
+const sendBtn=s=>`<button class="btn pri" data-a="sheet:share">${ic('send',20)}${TO[s.to].n}에게 보내기</button>`;
+function pSendA(s,live){return `<div class="col" style="height:100%;background:var(--bg)">${stbar()}<div class="hd" style="padding-left:12px"><button class="icb" aria-label="뒤로" data-a="p:detail">${ic('back')}</button><span class="t18">기록 보내기</span><span style="width:44px"></span></div>
+<div style="padding:4px 20px 0"><div class="h24">누구에게 보낼까요?</div><div style="margin-top:12px">${toRow(s)}</div><div class="b15" style="margin-top:10px">${TO[s.to].d}</div></div>
+<div class="cd" style="margin:14px 16px 0;padding:6px 18px"><div class="toc" style="color:var(--ter)"><span class="grow">차 기록 · 지문</span>${ic('lock',20)}<span style="font-size:14px">항상 들어가요</span></div>${INC.map(([k,n])=>`<button class="toc" style="border-top:1px solid var(--line)" role="switch" aria-checked="${s.inc[k]}" data-a="inc:${k}"><span class="grow">${n}</span><span class="sw ${s.inc[k]?'on':''}"><i></i></span></button>`).join('')}</div>
+<div class="fx" style="gap:10px;padding:14px 20px 0">${[0,1,2].map(i=>`<button class="tap" style="background:none;padding:0" aria-label="${i+1}쪽 크게 보기" data-a="prev:${i}">${pdfPage(s,i,88)}</button>`).join('')}<span class="c14 grow" style="padding-left:6px">보내기 전에 눌러서 전부 확인하세요</span></div>
+<div class="dock">${sendBtn(s)}</div><div class="gb"></div>${s.preview?preview(s):''}</div>`}
+function pSendB(s,live){return `<div style="height:100%;position:relative;background:#E4E5EA">${stbar()}<div class="hd" style="padding-left:12px;height:48px"><button class="icb" aria-label="뒤로" data-a="p:detail">${ic('back')}</button><span class="t18">기록 보내기</span><span style="width:44px"></span></div>
+<div class="fx" style="justify-content:center;padding-top:6px">${pdfPage(s,s.page,364)}</div>
+<div class="a fx" style="left:0;right:0;top:300px;justify-content:space-between;padding:0 2px">${s.page>0?`<button class="icb" style="background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.2)" aria-label="이전 쪽" data-a="pg:-1">${ic('back')}</button>`:'<span></span>'}${s.page<2?`<button class="icb" style="background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.2)" aria-label="다음 쪽" data-a="pg:1">${ic('chev')}</button>`:'<span></span>'}</div>
+<div class="a col" style="left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:18px 16px 26px;gap:12px;box-shadow:0 -8px 30px rgba(19,20,23,.14)"><div class="fx sb"><span class="t18">누구에게</span><span class="c14">${s.page+1} / 3쪽 · ${TO[s.to].s}</span></div>${toRow(s)}<div class="fx" style="gap:6px;flex-wrap:wrap"><button class="tog" aria-pressed="true" disabled>${ic('lock',14)}차 기록</button>${INC.map(([k,n])=>`<button class="tog" aria-pressed="${s.inc[k]}" data-a="inc:${k}">${s.inc[k]?ic('check',14):''}${n}</button>`).join('')}</div>${sendBtn(s)}</div></div>`}
+function preview(s){return `<div class="a" style="inset:0;background:#E4E5EA;animation:fade .2s both"><div class="fx sb" style="padding:40px 12px 8px"><button class="icb" aria-label="닫기" data-a="prev:x">${ic('x')}</button><span class="t18">${s.page+1} / 3쪽</span><span style="width:44px"></span></div><div class="fx" style="justify-content:center">${pdfPage(s,s.page,372)}</div><div class="a fx" style="left:16px;right:16px;bottom:40px;gap:8px"><button class="btn secd" ${s.page?'':'disabled style="opacity:.4"'} data-a="pg:-1">이전 쪽</button><button class="btn pri" ${s.page<2?'':'disabled style="opacity:.4"'} data-a="pg:1">다음 쪽</button></div></div>`}
+function sheet(s){if(s.sheet==='share')return `<div class="sheetb" data-a="sheet:x"></div><div class="sheet"><div class="c14">휴대폰 공유 창 (시스템 화면)</div><div class="fx" style="gap:8px">${['문자','메일','메신저','파일'].map(n=>`<button class="btn secd" style="height:84px;flex-direction:column;gap:4px;font-size:15px" data-a="sheet:asked">${ic(n==='파일'?'doc':'send',22)}${n}</button>`).join('')}</div></div>`;
+if(s.sheet==='asked')return `<div class="sheetb"></div><div class="sheet"><div class="h24">${TO[s.to].n}에게 보냈나요?</div><div class="b15">공유 창은 결과를 알려 주지 않아서 직접 표시해요.</div><button class="btn pri" style="margin-top:6px" data-a="sent:1">보냈어요</button><button class="btn secd" data-a="sheet:x">안 보냈어요</button></div>`;return ''}
+const TOAST={ask:'앞서 고른 "차에게 묻기"(5A) 화면으로 이어져요',set:'설정 화면으로 이어져요',past:'지난 사고 카드도 같은 상세 화면으로 열려요',manual:'사고 직접 기록 화면으로 이어져요',rec:'기록 상세(재현·기록지·사진)로 이어져요',add:'연락 상대 입력 화면으로 이어져요',log:'일지 전체가 펼쳐져요'};
+function phone(v,s,live){const f={alert:()=>pAlert(v,s),home:()=>v==='A'?pHomeA(s,live):pHomeB(s,live),detail:()=>v==='A'?pDetailA(s,live):pDetailB(s,live),send:()=>v==='A'?pSendA(s,live):pSendB(s,live)};return f[s.p]()+sheet(s)+(s.toast?`<div class="toast">${TOAST[s.toast]}</div>`:'')}
+
+/* ── 차 ─────────────────────────────────── */
+const carBase=inner=>`<img class="left" src="${IMG.left}" alt="왼쪽은 현대차 시스템 화면"><div class="win"><div class="floor"></div>${inner}</div>`;
+const rec=(locked)=>`<div class="recbar"></div><div class="reclab"><span class="dot"></span><span data-rec>기록 중 0:07</span></div>`;
+const chome=`<button class="cicb a" style="right:188px;top:48px" aria-label="설정" data-a="ctoast:set">${ic('gear',44)}</button><button class="cicb a" style="right:64px;top:48px" aria-label="앱 나가기" data-a="ctoast:exit">${ic('x',44)}</button>`;
+const faRow=(s,left,top,w)=>s.fa?`<div class="a fx sb carin" style="left:${left}px;top:${top}px;width:${w}px;height:112px;background:rgba(19,20,23,.06);border-radius:28px;padding:0 16px 0 32px"><span class="b26" style="color:var(--sec)">14:02 사고 아님으로 표시 · 7일 보관</span><button class="cb secd" style="height:80px;border-radius:24px;font-size:28px;padding:0 24px" data-a="fa:0">${ic('undo',32)}되돌리기</button></div>`:'';
+function cHomeA(s,live){const c=s.fa?CASES.slice(1):CASES;const a=!s.fa;return carBase(`<h2 class="a h44" style="left:80px;top:68px">사고 기록</h2>${chome}
+${a?`<div class="ccd a" style="left:80px;top:180px;width:880px;height:820px;${vt('chero',live)}"><div class="a b26" style="left:56px;top:52px">오늘 14:02 · 성동구 왕십리로</div><h3 class="a" style="left:56px;top:104px;margin:0;font-size:56px;line-height:72px;font-weight:800;width:520px">휴대폰에서 이어서 하세요</h3><div class="a" style="right:64px;top:64px">${topCar(520)}</div><div class="a col" style="left:56px;top:330px;gap:12px;align-items:flex-start"><span class="cchip">${ic('lock',28)}차에 저장됨</span><span class="cchip">${ic('check',28)}휴대폰 도착</span></div><button class="cb pri a" style="left:56px;right:56px;bottom:172px" data-a="ctoast:rec">기록 보기</button><button class="cb secd a" style="left:56px;right:56px;bottom:56px" data-a="ctoast:ask">차에게 묻기</button></div>`:`<div class="a col" style="left:80px;top:300px;width:880px"><h3 class="h44">진행 중인 사고가 없어요</h3><p class="b30" style="margin:12px 0 0">사고가 나면 이 화면이 먼저 열려요.</p></div>`}
+<div class="a" style="left:1010px;top:180px;width:610px"><div class="b26" style="color:var(--ink);font-weight:700;margin-bottom:16px">지난 사고</div><div class="col" style="gap:16px">${CASES.slice(1).map(x=>`<button class="ccd tap fx" style="height:176px;width:100%;padding:0 32px;gap:28px;border-radius:40px" data-a="ctoast:rec">${miniTop(128)}<span class="grow"><span style="font-size:32px;line-height:44px;font-weight:700;display:block">${x.d}</span><span class="b26">${x.k} · ${x.s}</span></span></button>`).join('')}</div></div>${faRow(s,1010,620,610)}
+<button class="cb secd a" style="left:80px;top:1058px" data-a="ctoast:manual">${ic('plus',36)}차가 못 본 사고 기록하기</button>${s.cToast?`<div class="ctoast">${s.cToast}</div>`:''}`)}
+function cHomeB(s,live){const a=!s.fa;const parks=CASES.slice(1).map((x,i)=>`<button class="tap a onnight" data-a="ctoast:rec" style="left:${980+i*330}px;top:430px;width:310px;height:570px;background:${i?'#30323A':'var(--night2)'};border-radius:40px;padding:32px 28px;text-align:left;color:#fff;display:flex;flex-direction:column;justify-content:flex-start"><span style="font-size:32px;line-height:42px;font-weight:700;display:block">${x.d}</span><span class="b26" style="color:#A4A8AE">${x.k}<br>${x.s}</span><span class="a" style="left:20px;bottom:44px">${rearCar(270,false)}</span></button>`).join('');
+return carBase(`<h2 class="a h44" style="left:80px;top:68px">사고 기록</h2>${chome}
+${a?`<div class="a onnight" style="left:80px;top:180px;width:870px;height:820px;background:var(--night);border-radius:56px;overflow:hidden;box-shadow:0 22px 50px rgba(19,20,23,.3);${vt('chero',live)}"><div class="a b26" style="left:56px;top:52px;color:#A4A8AE">오늘 14:02 · 성동구 왕십리로</div><h3 class="a" style="left:56px;top:100px;margin:0;font-size:56px;line-height:72px;font-weight:800">휴대폰에서 이어서 하세요</h3><div class="a fx" style="left:56px;top:190px;gap:12px"><span class="cchip">${ic('lock',28)}차에 저장됨</span><span class="cchip">${ic('check',28)}휴대폰 도착</span></div><div class="a carin" style="left:150px;top:278px">${rearCar(600)}</div><div class="a fx" style="left:40px;right:40px;bottom:40px;gap:16px"><button class="cb grow" style="background:#E0E1E6;color:var(--ink)" data-a="ctoast:rec">기록 보기</button><button class="cb glass" data-a="ctoast:ask">차에게 묻기</button></div></div>`:`<div class="a" style="left:80px;top:300px;width:800px"><h3 class="h44">진행 중인 사고가 없어요</h3><p class="b30" style="margin:12px 0 0">사고가 나면 이 화면이 먼저 열려요.</p></div>`}
+${parks}${faRow(s,980,290,640)}
+<button class="cb secd a" style="left:80px;top:1058px" data-a="ctoast:manual">${ic('plus',36)}차가 못 본 사고 기록하기</button>${s.cToast?`<div class="ctoast">${s.cToast}</div>`:''}`)}
+const fireBtn=(pos)=>`<button class="cb secd a" style="${pos}" data-a="ctoast:fire">${ic('flame',36)}불이나 연기가 나면</button>`;
+function cFirstA(s){return carBase(`<div class="a carin" style="left:1050px;top:270px">${topCar(640)}</div><div class="a" style="left:1280px;top:930px;font-size:30px;line-height:38px">뒤쪽 [센서 추정]</div>
+<h1 class="a h60" style="left:80px;top:440px">다치셨나요?</h1><p class="a b30" style="left:80px;top:532px;margin:0">14:02:07 뒤쪽 충격을 기록했어요</p>
+<button class="cb red a" style="left:80px;top:640px;width:640px" data-a="ctoast:hurt">다쳤어요</button><button class="cb pri a" style="left:80px;top:764px;width:640px" data-a="c:kind">안 다쳤어요</button>
+<button class="cb secd a" style="left:80px;top:1058px" data-a="fa:1">사고가 아니에요</button>${fireBtn('left:468px;top:1058px')}${rec()}${s.cToast?`<div class="ctoast">${s.cToast}</div>`:''}`)}
+function cFirstB(s){return carBase(`<div class="a carin" style="left:760px;top:290px">${rearCar(880)}</div><div class="a" style="left:80px;top:300px;font-size:30px;line-height:40px;color:var(--sec)">14:02:07<br>뒤쪽 충격을 기록했어요<br><span style="color:var(--ter)">[센서 추정]</span></div>
+<h1 class="a" style="left:80px;top:130px;margin:0;font-size:104px;line-height:124px;font-weight:800;letter-spacing:-2px">다치셨나요?</h1>
+${fireBtn('right:64px;top:48px')}
+<div class="a fx" style="left:80px;right:80px;top:1058px;gap:20px"><button class="cb red" style="flex:1.2" data-a="ctoast:hurt">다쳤어요</button><button class="cb pri" style="flex:1.2" data-a="c:kind">안 다쳤어요</button><button class="cb secd" style="flex:1" data-a="fa:1">사고가 아니에요</button></div><div class="recbar"></div><div class="a" style="left:80px;top:960px;display:flex;gap:10px;align-items:center;font-size:26px;color:var(--ter)"><span class="dot"></span><span data-rec>기록 중 0:07</span></div>${s.cToast?`<div class="ctoast">${s.cToast}</div>`:''}`)}
+function cKind(v,s){const K=[['vehicle','차'],['object','벽·시설물'],['person','사람·자전거']];const dark=v==='B';return carBase(`<h1 class="a h60" style="left:80px;top:96px">무엇과 부딪혔나요?</h1>${fireBtn('right:64px;top:48px')}
+<div class="a fx" style="left:80px;right:80px;top:250px;gap:24px;height:740px">${K.map(([k,n])=>`<button class="tap col" style="flex:1;height:100%;border-radius:48px;background:${dark?'var(--night)':'#fff'};color:${dark?'#fff':'var(--ink)'};align-items:center;justify-content:center;gap:40px;box-shadow:0 12px 40px rgba(19,20,23,${dark?.22:.08})" data-a="c:home">${kind(k,dark?320:280)}<span style="font-size:44px;line-height:56px;font-weight:700">${n}</span></button>`).join('')}</div>
+<button class="cb secd a" style="left:80px;top:1058px" data-a="c:home">건너뛰기</button>${rec()}`)}
+function car(v,s,live){return s.c==='first'?(v==='A'?cFirstA(s):cFirstB(s)):s.c==='kind'?cKind(v,s):(v==='A'?cHomeA(s,live):cHomeB(s,live))}
+
+/* ── 틀 ─────────────────────────────────── */
+function dev(cls,html,W,H,scale,id){return `<div class="dev" style="width:${W*scale}px;height:${H*scale}px"><div class="scr ${cls}" ${id?`id="${id}"`:''} style="transform:scale(${scale})">${html}</div></div>`}
+const avail=()=>Math.max(300,document.querySelector('.wrap').clientWidth);
+const JP=[['alert','사고 알림'],['home','홈'],['homeE','홈(사고 없음)'],['detail','사고 카드'],['send','기록 보내기'],['asked','보냈나요?']];
+const JC=[['home','차 홈'],['first','첫 화면'],['kind','대상 고르기']];
+function viewBoth(){const w=avail();const ps=Math.min(.5,(w-12)/2/412*1)||.5;const pw=Math.max(.36,Math.min(.56,(w-60)/6/412));const cs=Math.min(.29,(w-20)/2/2554*1)>.2?Math.min(.29,(w-20)/2/2554):Math.min(.34,(w-4)/2554);const row=(v,t)=>{const mk=(p,e)=>({...init(),p,empty:!!e});const items=[['사고 알림',mk('alert')],['홈',mk('home')],['홈(사고 없음)',mk('home',1)],['사고 카드',mk('detail')],['기록 보내기',mk('send')],['보냈나요?',{...mk('send'),sheet:'asked'}]];
+return `<section class="col" style="gap:8px"><div class="row-lab" style="font-size:20px;line-height:28px">${t}</div><div class="rowx static">${items.map(([n,s])=>`<div class="cell">${dev('phone',phone(v,s,false),412,915,pw)}<small>${n}</small></div>`).join('')}</div><div class="rowx static" style="margin-top:8px">${[['first','첫 화면'],['kind','대상 고르기'],['home','차 홈']].map(([c,n])=>`<div class="cell">${dev('car',car(v,{...init(),c},false),2554,1208,cs)}<small>${n}</small></div>`).join('')}</div></section>`};
+return `<div class="diff"><div><h2>A안 · 할 일과 목록</h2><p>홈 맨 위에 지금 할 일 한 장, 아래는 지난 사고 줄. 사고 카드는 할 일·연락 상대·일지가 한 화면에 다 보여요. 차분하고 읽기 빠릅니다.</p></div><div><h2>B안 · 사고 카드 지갑</h2><p>사고마다 어두운 카드가 쌓여 있고, 누르면 그 카드가 화면으로 커져요. 사고 카드는 할 일·일지·기록 탭으로 나뉘고, 보내기는 문서를 크게 보면서 고릅니다.</p></div></div>${row('A','A안')}${row('B','B안')}`}
+function viewLive(){const v=V;const w=avail();const narrow=w<760;const pr=Math.min(.82,(narrow?w:420)/412);const cw=narrow?w:w-412*pr-30;const cs=Math.min(.6,cw/2554);
+return `<div class="rowx" style="gap:24px"><div class="cell" style="gap:10px"><div class="jump" id="jp">${JP.map(([k,n])=>`<button data-j="p:${k}" aria-pressed="${curJ('p',k)}">${n}</button>`).join('')}</div><div id="pm"></div></div>
+<div class="cell grow" style="gap:10px;min-width:0"><div class="jump" id="jc">${JC.map(([k,n])=>`<button data-j="c:${k}" aria-pressed="${S.c===k}">${n}</button>`).join('')}</div><div id="cm"></div><p class="note">차: "안 다쳤어요"를 누르면 대상 고르기, "사고가 아니에요"를 누르면 차 홈에 접힌 줄이 생기고 되돌릴 수 있어요. 휴대폰: 사고 알림 → 홈 → 기록 보내기 → 공유 창 → 보냈나요? 순서로 눌러 보세요. 받는 사람을 바꾸면 스위치와 문서가 같이 바뀌어요.</p></div></div>`;
+function curJ(){}}
+const curJ=(d,k)=>k==='asked'?S.sheet==='asked':k==='homeE'?S.p==='home'&&S.empty:k==='home'?S.p==='home'&&!S.empty:S.p===k&&S.sheet!=='asked';
+let pscale=.7,cscale=.4;
+function paintLive(){const w=avail();const narrow=w<760;pscale=Math.min(.82,(narrow?w:420)/412);const cw=narrow?w:w-412*pscale-30;cscale=Math.min(.6,cw/2554);
+ document.getElementById('pm').innerHTML=dev('phone',phone(V,S,true),412,915,pscale);document.getElementById('cm').innerHTML=dev('car',car(V,S,true),2554,1208,cscale);
+ document.querySelectorAll('#jp button').forEach(b=>b.setAttribute('aria-pressed',curJ('p',b.dataset.j.slice(2))));document.querySelectorAll('#jc button').forEach(b=>b.setAttribute('aria-pressed',S.c===b.dataset.j.slice(2)));}
+function renderTabs(){document.getElementById('tabs').innerHTML=[['both','전체 나란히'],['A','A안 눌러 보기'],['B','B안 눌러 보기']].map(([k,n])=>`<button data-v="${k}" aria-pressed="${V===k}">${n}</button>`).join('')}
+function renderAll(){renderTabs();const m=document.getElementById('main');if(V==='both'){m.innerHTML=viewBoth()}else{m.innerHTML=viewLive();paintLive()}}
+function trans(fn,scope){const go=()=>{fn();paintLive()};if(document.startViewTransition&&!document.hidden&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const t=document.startViewTransition(go);t.ready.catch(()=>{});t.finished.catch(()=>{})}else go()}
+let tt;function act(a){const i=a.indexOf(':'),k=a.slice(0,i),v=a.slice(i+1);clearTimeout(tt);
+ const sched=()=>{tt=setTimeout(()=>{S.toast=null;S.cToast=null;paintLive()},2600)};
+ if(k==='p')trans(()=>{S.p=v;S.sheet=null;S.toast=null;S.preview=false;S.page=0;});
+ else if(k==='c')trans(()=>{S.c=v;S.cToast=null});
+ else if(k==='toast'){S.toast=v;paintLive();sched()}
+ else if(k==='ctoast'){S.cToast={rec:'앞서 고른 기록 화면(2A)으로 이어져요',ask:'앞서 고른 차에게 묻기(5A)로 이어져요',set:'설정 1장으로 이어져요',exit:'앱을 닫고 내비로 돌아가요',manual:'사고 직접 기록으로 이어져요',hurt:'119 안내(공식 수칙 1번)로 이어져요',fire:'불·연기 안내로 이어져요'}[v];paintLive();sched()}
+ else if(k==='tab')trans(()=>S.tab=v);
+ else if(k==='to'){S.to=v;S.inc=def(v);paintLive()}
+ else if(k==='inc'){S.inc[v]=!S.inc[v];paintLive()}
+ else if(k==='sheet'){S.sheet=v==='x'?null:v;paintLive()}
+ else if(k==='sent'){S.sent=true;S.sheet=null;trans(()=>{S.p='detail';S.tab='log'})}
+ else if(k==='empty')trans(()=>S.empty=!!+v);
+ else if(k==='stack')trans(()=>{const o=S.order,x=o.splice(+v,1)[0];o.unshift(x)});
+ else if(k==='prev'){if(v==='x')S.preview=false;else{S.preview=true;S.page=+v}paintLive()}
+ else if(k==='pg'){S.page=Math.max(0,Math.min(2,S.page+ +v));paintLive()}
+ else if(k==='fa'){trans(()=>{S.fa=!!+v;S.c='home';S.cToast=+v?'사고가 아닌 것으로 접었어요. 7일 안에 되돌릴 수 있어요':null});sched()}}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-v]');if(t){V=t.dataset.v;S=init();try{location.hash=V}catch(_){}renderAll();return}
+ const j=e.target.closest('[data-j]');if(j){const [d,k]=j.dataset.j.split(':');trans(()=>{S.toast=null;S.cToast=null;if(d==='c')S.c=k;else{S.sheet=null;S.empty=k==='homeE';if(k==='asked'){S.p='send';S.sheet='asked'}else S.p=k==='homeE'?'home':k}});return}
+ const a=e.target.closest('[data-a]');if(a&&a.closest('.scr')&&!a.closest('.static'))act(a.dataset.a)});
+let sec=7,locked=0;setInterval(()=>{sec=sec>=10?0:sec+1;document.querySelectorAll('[data-rec]').forEach(n=>{n.textContent=sec>=10?'차에 저장됨 14:02:17':'기록 중 0:'+String(sec).padStart(2,'0')})},1000);
+let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(renderAll,160)});
+S=init();const h=location.hash.slice(1);if(h==='A'||h==='B')V=h;renderAll();
+</script>

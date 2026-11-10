@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 사고 화면: 정차 전엔 위쪽 안내줄만 그리고 아래 내비가 비쳐 보이게 투명 창 -->
+    <style name="Theme.AskTheCar.Translucent" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+</resources>

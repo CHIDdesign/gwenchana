@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 실차 APK: HTTPS 만. 평문 HTTP(에뮬레이터 → PC 시제품 서버·게임 브리지)는 디버그 빌드의 같은 파일(app/src/debug/res/xml)에서만 허용 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
+    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
+    <!-- 계기판 경고등(Telltales: ABS·ESC·FCA·비상등 등) 사고 기록용. 보호 수준 normal(에뮬레이터 확인), 앱마켓 심사 허용 여부 미확인 -->
+    <uses-permission android:name="pleos.car.permission.PRIVATE_CAR_SAFETY" />
+    <!-- 트렁크 열기(고속도로 대처 "트렁크 열기"): Door REAR 위치 -->
+    <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
+    <uses-permission android:name="pleos.car.permission.CONTROL_CAR_DOORS" />
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+    <!-- 운전자 진술: STT가 안 될 때 녹음으로 대신함 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 실차 모드: 사고 순간 차 카메라 사진(Camera2, 차에 열린 카메라가 있을 때만) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 통화가 끝났는지만 확인해 안내로 돌아오기 위해. 번호·기록은 읽지 않는다 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
+    <!-- NaviHelper: 현재 도로 제한속도 (고속도로 판단) -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 사고 감지 시 백그라운드에서 사고 화면을 띄우기 위함 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- 차가 켜지면 자동으로 기록 시작 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- 공유할 앱이 있는지 확인 (Android 11+ 패키지 공개 범위) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SEND_MULTIPLE" />
+            <data android:mimeType="*/*" />
+        </intent>
+    </queries>
+
+    <application
+        android:label="괜차나"
+        android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        <!-- 개인정보 동의 화면 (첫 실행·시동 때 동의 전이면 먼저 뜸) -->
+        <activity
+            android:name=".ConsentActivity"
+            android:configChanges="uiMode"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="uiMode"
+            android:exported="true">
+            <!-- 주행 중엔 홈 대신 한 줄만 그린다(MainActivity.isMoving). 차가 막으면 그 한 줄도 못 보여 줌 -->
+            <meta-data android:name="distractionOptimized" android:value="true" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".CrashActivity"
+            android:configChanges="uiMode|orientation|screenSize|smallestScreenSize|screenLayout"
+            android:exported="false"
+            android:theme="@style/Theme.AskTheCar.Translucent"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true">
+            <!-- 주행 중에도 보이게 (AAOS 주행 중 화면 제한). 사고 화면은 정차 전엔 "차를 세우세요"만 보여 줌 -->
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".CarService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Records recent driving data in memory to detect collisions and guide the driver after an accident" />
+        </service>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.askthecar.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

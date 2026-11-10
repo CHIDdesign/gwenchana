@@ -1,0 +1,57 @@
+{
+  "fg_bbox_dp": [
+    30.1,
+    27.4,
+    77.9,
+    80.6
+  ],
+  "inside_66dp": true,
+  "logo_extent_ok_48_66": true,
+  "min_contrast_fg_bg": 11.62,
+  "store": {
+    "w": 512,
+    "h": 512,
+    "alpha": false,
+    "bytes": 6558
+  },
+  "notify": {
+    "single_silhouette": true
+  },
+  "checks": {
+    "inside_66dp": true,
+    "logo_extent_48_66": true,
+    "not_clipped_by_72dp_circle": true,
+    "bg_opaque": true,
+    "no_mask_or_filter_in_layers": true,
+    "store_512": true,
+    "store_opaque": true,
+    "store_under_1mb": true,
+    "notify_single_silhouette": true
+  },
+  "android_res": {
+    "written": [
+      "drawable/ic_launcher_background.xml",
+      "drawable/ic_launcher_foreground.xml",
+      "drawable/ic_launcher_monochrome.xml",
+      "drawable/ic_notify.xml",
+      "mipmap-anydpi-v26/ic_launcher.xml"
+    ],
+    "overwrote": [
+      "drawable/ic_launcher_foreground.xml",
+      "drawable/ic_launcher_background.xml",
+      "drawable/ic_launcher_monochrome.xml",
+      "mipmap-anydpi-v26/ic_launcher.xml",
+      "drawable/ic_notify.xml"
+    ]
+  },
+  "files": [
+    "store_512.png",
+    "masks_circle_light.png",
+    "masks_circle_dark.png",
+    "masks_squircle_light.png",
+    "masks_squircle_dark.png",
+    "masks_square_light.png",
+    "masks_square_dark.png",
+    "themed_mono.png"
+  ]
+}

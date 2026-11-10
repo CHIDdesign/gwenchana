@@ -1,0 +1,24 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+relay/node_modules/
+relay/.wrangler/
+game/bridge/clips/
+__pycache__/
+secrets.properties
+tools/*
+!tools/env.cmd
+!tools/run.cmd
+game/bridge/runs/
+game/bridge/maps/
+game/bridge/.installed_apk
+.omc/
+.claude/settings.local.json
+*.tmp
+# 현대 디자인 가이드 원본(재배포 권리 미확인, 23MB) — 빌드엔 필요 없음
+Hyundai design rule/
+
+design/brand/exploration/
