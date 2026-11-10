@@ -274,6 +274,8 @@ private fun App(openGuide: Int) {
     // 알림을 눌렀거나, 열려 있는 동안 새 사고가 오면 안내로
     LaunchedEffect(openGuide) { if (openGuide > 0 && latest != null) { openT = latest.t; caseTab = 0; screen = if (hasGuide) Screen.GUIDE else Screen.CASE } }
     LaunchedEffect(latest?.t) { if (latest != null && hasGuide && state?.notAccident != true && screen == Screen.HOME && Logic.fresh(latest) && !helper) { openT = latest.t; screen = Screen.GUIDE } }
+    // 사고 아님·게임 리셋은 끝낸 안내가 아니다. 사진 화면에서 돌아올 때도 걸리게 screen 도 지켜본다
+    LaunchedEffect(state?.notAccident, screen) { if (state?.notAccident == true && screen == Screen.GUIDE) screen = Screen.HOME }
 
     BackHandler(screen != Screen.HOME) {
         screen = when (screen) {
