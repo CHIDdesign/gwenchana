@@ -143,7 +143,7 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 - 동기화 서버는 **PC 시제품**(`sync_server.py`, 인증 없음, 평문 HTTP). 1차 제출까지만 허용된 예외이고 README에 밝혀야 한다.
 - 운영국 답(11-04): ADAS SDK 사용 불가. Connect SDK는 매니페스트 권한 선언이면 에뮬레이터 개발 가능. 추가 안내 대기: 대학생 신청, TTS 401, 나머지 SDK, 센서·카메라·초음파·CODA API.
 
-- 접수양식(기획서) 작성 중(2026-11-10): 공식 빈 양식 `docs/contest-application-consent.docx`, 02 소개 초안 `docs/접수양식_02_초안.md`(1~8번 초안 끝, 2026-11-10. 빈칸: 시연 영상 링크, 숏폼 링크, 별지 1 화면 캡처). 분량 제한 없음 확인, Word 양식 함정은 `reports/공모전 접수양식 분량 제한.md`. 실명·연락처·서명이 들어가는 01·03·04는 저장소에 넣지 않는다. 마감 11/15 23:59, appdevchallenge@hyundai-partners.com.
+- 접수양식(기획서) 작성 중(2026-11-10): 임시 폴더 `접수양식_임시/`에 모음(공식 빈 양식, 02 소개 초안 `접수양식_02_초안.md`, 분량 제한 조사 보고서, 조사노트. 사용자가 받은 뒤 지울 예정)(1~8번 초안 끝, 2026-11-10. 빈칸: 시연 영상 링크, 숏폼 링크, 별지 1 화면 캡처). 분량 제한 없음 확인, Word 양식 함정은 `접수양식_임시/분량 제한 조사 보고서.md`. 실명·연락처·서명이 들어가는 01·03·04는 저장소에 넣지 않는다. 마감 11/15 23:59, appdevchallenge@hyundai-partners.com.
 
 공개 주소: https://github.com/CHIDdesign/gwenchana (2026-11-10 공개). 작성자는 임시로 `Gwenchana Team`.
 
