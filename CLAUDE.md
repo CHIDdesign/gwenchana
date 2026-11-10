@@ -143,14 +143,14 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 - 동기화 서버는 **PC 시제품**(`sync_server.py`, 인증 없음, 평문 HTTP). 1차 제출까지만 허용된 예외이고 README에 밝혀야 한다.
 - 운영국 답(11-04): ADAS SDK 사용 불가. Connect SDK는 매니페스트 권한 선언이면 에뮬레이터 개발 가능. 추가 안내 대기: 대학생 신청, TTS 401, 나머지 SDK, 센서·카메라·초음파·CODA API.
 
-- 접수양식(기획서) 작성 중(2026-11-10): 공식 빈 양식 `docs/contest-application-consent.docx`, 02 소개 초안 `docs/접수양식_02_초안.md`(1~3번 작성, 4~8번 남음). 실명·연락처·서명이 들어가는 01·03·04는 저장소에 넣지 않는다. 마감 11/15 23:59, appdevchallenge@hyundai-partners.com.
+- 접수양식(기획서) 작성 중(2026-11-10): 공식 빈 양식 `docs/contest-application-consent.docx`, 02 소개 초안 `docs/접수양식_02_초안.md`(1~8번 초안 끝, 2026-11-10. 빈칸: 시연 영상 링크, 숏폼 링크, 별지 1 화면 캡처). 분량 제한 없음 확인, Word 양식 함정은 `reports/공모전 접수양식 분량 제한.md`. 실명·연락처·서명이 들어가는 01·03·04는 저장소에 넣지 않는다. 마감 11/15 23:59, appdevchallenge@hyundai-partners.com.
 
 공개 주소: https://github.com/CHIDdesign/gwenchana (2026-11-10 공개). 작성자는 임시로 `Gwenchana Team`.
 
 ## 다음 할 일 (우선순위)
 
 1. 휴대폰 홈의 사고 카드 화면 확인. (release 빌드·dex 검사는 게임 폴더를 지운 상태로 2026-11-10 통과)
-2. 접수양식 초안 마무리(11/15 전): `docs/접수양식_02_초안.md` 4~8번 작성 → 공식 docx에 옮기기, 팀 이름. 수치는 1~3번만 원문 대조함(2026-11-10). `docs/기획서.md`의 2차 사고 "54.3%, 6.5배"는 기간이 다른 옛 수치라 초안에서는 2024년 44%·약 4배로 바꿈(기획서 본문은 아직 그대로).
+2. 접수양식 마무리(11/15 전): 3~6번 사용자 검토 → 공식 docx에 옮기기(초안 위 "Word로 옮길 때 주의"), 팀 이름, 별지 1 화면 캡처, 시연 영상·숏폼 링크. 6번의 MAU 가정(국내 Pleos 400만 대, 설치 20%, 사고 뒤 두 달 사용)은 사용자 확인 필요. 수치는 1~3번만 원문 대조함(2026-11-10). `docs/기획서.md`의 2차 사고 "54.3%, 6.5배"는 기간이 다른 옛 수치라 초안에서는 2024년 44%·약 4배로 바꿈(기획서 본문은 아직 그대로).
 3. 시연 영상 촬영(`끝내기.cmd` 뒤 새로 켜고, 지시등 끄고).
 4. release 전용 서명 키 만들기(지금은 디버그 키), `apk/팀명_앱이름_release.apk` 규칙, 실명 아닌 팀명 확정.
 5. `relay` 배포: `cd relay` → `npx wrangler login` → `npm run deploy` → 나온 주소를 `relay.url`에.
