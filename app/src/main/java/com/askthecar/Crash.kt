@@ -126,6 +126,7 @@ object CrashFlow {
         val highway = r.log.filter { it.t in (t - 30)..t }.map { it.speedKph }.average().let { !it.isNaN() && it >= 80 }
         setIncident { Incident(t, if (File(d, CrashWatcher.MANUAL).exists()) "운전자 직접 기록" else "충격 감지", r.log.any { it.airbag }, highway, r.impactDeg, r.log.filter { it.t in (t - 10)..t }, roadKnown = false) } // 제한속도는 그때 값이 없어 안내에서 묻는다
         CarSync.reopen(t)
+        CarSync.step(t, 0) // 차는 첫 질문부터라, 서버에 남은 옛 단계로 휴대폰이 어긋나지 않게
         CarSync.publish()
         return true
     }

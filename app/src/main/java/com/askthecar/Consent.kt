@@ -44,7 +44,7 @@ object Consent {
         val p = prefs(ctx)
         Item.entries.forEach { on[it] = p.getBoolean(it.name, false) }
         CarSync.init(ctx)
-        CarSync.flushWipes()
+        CarSync.flushPending()
     }
 
     fun allowed(item: Item): Boolean = on[item] ?: false

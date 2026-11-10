@@ -50,7 +50,7 @@ object CarSync {
     fun arrived(t: Double) = seen?.let { kotlin.math.abs(it - t) < 0.001 } == true
     private lateinit var app: Context
     private val send = Executors.newSingleThreadScheduledExecutor { Thread(it, "car-sync").apply { isDaemon = true } }
-    private var wipeRetry = false // send 스레드에서만 씀
+    private var retrying = false // send 스레드에서만 씀
 
     fun init(ctx: Context) { app = ctx.applicationContext }
 
@@ -62,7 +62,7 @@ object CarSync {
 
     private fun submit(f: (SyncClient) -> Boolean) {
         if (!allowed()) return
-        send.execute { tryWipes(); ok = runCatching { f(client()) }.getOrDefault(false) } // 밀린 삭제가 먼저: 늦은 삭제가 새 사고를 지우지 않게
+        send.execute { tryPending(); ok = runCatching { f(client()) }.getOrDefault(false) } // 밀린 삭제가 먼저: 늦은 삭제가 새 사고를 지우지 않게
     }
 
     /** 지금 사고 상태(사고 직후·기록 저장·종류 변경 때) */
@@ -78,7 +78,10 @@ object CarSync {
     }
 
     /** "사고 아님"을 되돌림. publish 와 같은 줄에 서서 순서대로 간다 */
-    fun reopen(t: Double) = submit { it.reopen(t) }
+    fun reopen(t: Double) {
+        if (::app.isInitialized) closes().edit().remove(account()).commit() // 못 보낸 "사고 아님"이 되돌린 뒤에 도착하지 않게
+        submit { it.reopen(t) }
+    }
 
     /** 사고 화면 없이 홈만 열려 있을 때도 도착 신호를 받는다(사고 화면은 followPhone 이 받음) */
     suspend fun followSeen() {
@@ -94,29 +97,42 @@ object CarSync {
     }
 
     fun step(t: Double, index: Int) = submit { it.putStep(t, index, "car") }
-    fun close(t: Double, notAccident: Boolean = false) = submit { it.close(t, notAccident) }
+
+    /** 터널 등에서 끊긴 순간 닫아도 휴대폰이 안내·알림에 남지 않게, 200을 받을 때까지 다시 보낸다 */
+    fun close(t: Double, notAccident: Boolean = false) {
+        if (!allowed()) return
+        closes().edit().putString(account(), "$t $notAccident").commit() // 앱이 꺼져도 남게 바로 저장
+        flushPending()
+    }
 
     /** 동의 철회·"모두 지우기": 서버의 이 계정 사고·연결도 지운다. 동의를 먼저 끈 뒤 불리므로 allowed() 를 보지 않는다 */
     fun wipe() {
         if (!::app.isInitialized) return
-        pending().edit().putBoolean((Personas.load(app) ?: Personas.guest).id, true).commit() // 계정은 지금 값으로. 앱이 꺼져도 남게 바로 저장
-        flushWipes()
+        closes().edit().clear().commit() // 동의를 철회했으니 못 보낸 닫힘도 더 보내지 않는다
+        pending().edit().putBoolean(account(), true).commit() // 계정은 지금 값으로. 앱이 꺼져도 남게 바로 저장
+        flushPending()
     }
 
     /** 터널·오프라인에서 지워도 서버·휴대폰 사본이 남지 않게, 200을 받을 때까지 다시 보낸다. 앱이 켜질 때도(Consent.init) */
-    fun flushWipes() {
-        if (::app.isInitialized) send.execute { tryWipes() }
+    fun flushPending() {
+        if (::app.isInitialized) send.execute { tryPending() }
     }
 
+    private fun account() = (Personas.load(app) ?: Personas.guest).id
     private fun pending() = app.getSharedPreferences("sync_wipe", Context.MODE_PRIVATE)
+    private fun closes() = app.getSharedPreferences("sync_close", Context.MODE_PRIVATE)
 
-    private fun tryWipes() {
+    private fun tryPending() {
         pending().all.keys.forEach { a ->
             if (runCatching { SyncClient(BuildConfig.SYNC_URL, a).wipe() }.getOrDefault(false)) pending().edit().remove(a).apply()
         }
-        if (pending().all.isNotEmpty() && !wipeRetry) {
-            wipeRetry = true
-            send.schedule({ wipeRetry = false; tryWipes() }, 30, java.util.concurrent.TimeUnit.SECONDS)
+        closes().all.forEach { (a, v) ->
+            val (t, notAccident) = v.toString().split(" ")
+            if (runCatching { SyncClient(BuildConfig.SYNC_URL, a).close(t.toDouble(), notAccident.toBoolean()) }.getOrDefault(false)) closes().edit().remove(a).apply()
+        }
+        if ((pending().all.isNotEmpty() || closes().all.isNotEmpty()) && !retrying) {
+            retrying = true
+            send.schedule({ retrying = false; tryPending() }, 30, java.util.concurrent.TimeUnit.SECONDS)
         }
     }
 }
