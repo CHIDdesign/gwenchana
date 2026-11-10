@@ -81,7 +81,7 @@
 
 ## 새 PC에서 처음 설치 (Claude가 이 순서대로 진행)
 
-**저장 위치는 아무 드라이브나 된다.** 개발자는 외장 SSD에서 작업했지만 코드와 스크립트에 드라이브 고정값은 없다. `git clone` 뒤 어느 폴더든 그대로 쓴다. 공간은 약 35GB(Pleos 이미지 19GB, 휴대폰 이미지 3.5GB, Android Studio·JDK·에뮬레이터·Gradle 캐시). 인텔/AMD Windows만 시험했다.
+**저장 위치는 아무 드라이브나 된다.** 개발자는 외장 SSD에서 작업했지만 코드와 스크립트에 드라이브 고정값은 없다. `git clone` 뒤 어느 폴더든 그대로 쓴다. 공간은 설치에 약 30GB(Pleos 이미지 19GB, 휴대폰 이미지 3.5GB, Android Studio·JDK·에뮬레이터·Gradle 캐시), 에뮬레이터를 쓰면 데이터가 약 18GB 더 늘어난다(개발 PC 기준). 인텔/AMD Windows만 시험했다.
 
 저장소에 없는 것: JDK·Android SDK·에뮬레이터 이미지·`secrets.properties`·BeamNG. 전부 `tools/` 아래에 넣는다(git 제외).
 
