@@ -126,7 +126,7 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 3. 시연 영상 촬영(`끝내기.cmd` 뒤 새로 켜고, 지시등 끄고).
 4. release 전용 서명 키 만들기(지금은 디버그 키), `apk/팀명_앱이름_release.apk` 규칙, 실명 아닌 팀명 확정.
 5. `relay` 배포: `cd relay` → `npx wrangler login` → `npm run deploy` → 나온 주소를 `relay.url`에.
-6. AI 생성 그림의 공모전 규칙 미확인. 그림의 AI 표시를 지운 적이 있어 운영국 확인 권장. NOTICE.md의 Sketchfab 모델 작품 주소 채우기(CC BY).
+6. AI 생성 그림의 공모전 규칙 미확인. 그림의 AI 표시를 지운 적이 있어 운영국 확인 권장.
 7. **12/03 전**: 실제 https 동기화 서버(인증·푸시), 기본 주소 교체, release APK로 끝까지 확인. 알림은 FCM 필요.
 8. **12/03 전**: 말로 답하기, 통화 도우미, 의심 등급, 고속도로 재설계, 합의까지 진행 표시 완성.
 9. 수상·사업화 전 BeamNG 라이선스 문의(EULA 4.2 상업 이용 금지, media@beamng.com).

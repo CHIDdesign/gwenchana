@@ -1,6 +1,5 @@
 """사고 3D 화면의 내 차 모델을 직접 만든다(리토폴로지).
 참고 모델의 표면 위치·방향·색 구역만 재서, 메시·재질·휠은 여기서 새로 만든다. 참고 모델의 메시·그림은 결과에 들어가지 않는다. 로고·글자 없음.
-참고: "Hyundai Ioniq 5 Lowpoly" (Sketchfab andikapratamaw, CC BY 4.0) → NOTICE.md 출처 표기.
 
 실행: blender -b --disable-autoexec <참고.blend> --python design/car/build_car_model.py -- <결과.glb> [<결과.blend>] [그림 크기]
 앞 = Blender -Y (glTF 에서는 +Z, 앱의 fit() 이 앞을 -Z 로 돌린다).

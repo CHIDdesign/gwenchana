@@ -6,7 +6,6 @@
 |---|---|---|---|
 | Asta Sans (42dot) | 앱 글꼴 (Pleos 디자인 가이드 지정) | SIL Open Font License 1.1 | https://github.com/42dot/Asta-Sans , Google Fonts `ofl/astasans` |
 | three.js 0.186.1 (`three.core.js`, `three.module.js`, `OrbitControls.js`, `GLTFLoader.js`, `BufferGeometryUtils.js`, `SkeletonUtils.js`) | 사고 장면 3D 재구성 | MIT | https://github.com/mrdoob/three.js (npm `three`) |
-| Hyundai Ioniq 5 Lowpoly 3D 모델(참고 자료) | 사고 3D 화면의 내 차 모양을 다시 뜰 때 기준으로 씀. 메시·그림은 포함 안 함, 메시·재질·휠은 새로 만듦 (`design/car/build_car_model.py`) | CC BY 4.0 | 작성자 andikapratamaw, Sketchfab. 바꾼 것: 표면을 재서 새 메시로 다시 뜸, 로고·글자 제거. https://creativecommons.org/licenses/by/4.0/ |
 | MediaPipe Tasks Vision 1.2.0 | 블랙박스 프레임 차량 인식 실행 | Apache License 2.0 | https://github.com/google-ai-edge/mediapipe (Maven `com.google.mediapipe:tasks-vision`) |
 | EfficientDet-Lite0 (TensorFlow) | 차량 인식 모델 (COCO 학습) | Apache License 2.0 (모델 메타데이터·Kaggle 표기 확인) | Kaggle `tensorflow/efficientdet` tfLite `lite0-detection-metadata` v1 |
 | Kenney Mini Characters 1.0 (character-male-a → person.glb) | 사고 3D의 사람 모델 | CC0 1.0 | https://kenney.nl/assets/mini-characters |

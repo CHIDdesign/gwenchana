@@ -1,4 +1,0 @@
-The IONIQ 5 shape in models/car/ioniq5.glb was re-modeled (new mesh, materials and wheels) using this model as a reference:
-Hyundai Ioniq 5 Lowpoly by andikapratamaw (Sketchfab)
-License: CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
-Changes: new topology measured from the reference surface, logo and text removed, own materials and wheels. The reference mesh and textures are not included.

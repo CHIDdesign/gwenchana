@@ -280,8 +280,7 @@ class MainActivity : ComponentActivity() {
                         ConsentSection()
                     }
                     else -> SettingCard("오픈소스 라이선스", "원문은 앱 안 assets/licenses 에 있어요.") {
-                        listOf("Asta Sans 글꼴 · OFL 1.1", "three.js · MIT", "MediaPipe · EfficientDet-Lite0 · AndroidX · Apache 2.0", "사람 모델 Kenney · CC0",
-                            "차 모델 참고 Hyundai Ioniq 5 Lowpoly by andikapratamaw · CC BY 4.0").forEach { Text(it, style = Pleos.bodyM, color = Pleos.textSecondary) }
+                        listOf("Asta Sans 글꼴 · OFL 1.1", "three.js · MIT", "MediaPipe · EfficientDet-Lite0 · AndroidX · Apache 2.0", "사람 모델 Kenney · CC0").forEach { Text(it, style = Pleos.bodyM, color = Pleos.textSecondary) }
                     }
                 }
             }
