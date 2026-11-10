@@ -79,18 +79,44 @@
 | `game/bridge/sync_server.py` | 시제품 동기화 서버(HTTP 8767) |
 | `game/bridge/crash_suite.py`, `crash_test.py` | 자동 사고 시험 |
 
-## 처음 설치
+## 새 PC에서 처음 설치 (Claude가 이 순서대로 진행)
 
-저장소에 없는 것: JDK·Android SDK·에뮬레이터 이미지·`secrets.properties`·BeamNG.
+**저장 위치는 아무 드라이브나 된다.** 개발자는 외장 SSD에서 작업했지만 코드와 스크립트에 드라이브 고정값은 없다. `git clone` 뒤 어느 폴더든 그대로 쓴다. 공간은 약 35GB(Pleos 이미지 19GB, 휴대폰 이미지 3.5GB, Android Studio·JDK·에뮬레이터·Gradle 캐시). 인텔/AMD Windows만 시험했다.
 
-1. Windows "하이퍼바이저 플랫폼"(WHPX) 켜기, Python 3 설치, 재부팅. `relay`를 배포할 사람은 Node.js도.
-2. `tools/` 아래에 넣기: `jdk17/`, `sdk/`(platform 35, build-tools 35, emulator, platform-tools, Pleos 이미지 `system-images/android-34/pleos_car_emulator/x86_64`), 휴대폰 에뮬레이터용 Android 35 시스템 이미지, `android-user/avd/`(`Pleos_Connect.avd`, `Phone.avd`). 받는 곳: Android Studio > Settings > Android SDK > SDK Update Sites에 `https://nexus-playground.pleos.ai/repository/raw-releases/connect-avd/2.x/crp-sys-img.xml`(Intel/AMD용, ARM은 `crp-arm64-sys-img.xml`)을 추가하고 Android 14 아래 Pleos Connect 이미지를 설치(공개된 다른 출품 저장소에 적힌 절차, 우리 팀이 이 순서로 다시 해 보지는 않음). **가장 빠른 길은 프로젝트 대표의 `tools/` 폴더를 통째로 복사하는 것.**
-3. `secrets.properties`를 루트에 만든다(README의 "자기 키로 빌드"). 항목: `pleos.clientId`, `pleos.clientSecret`, `anthropic.apiKey`, `relay.url`, `relay.token`, `obs.password`, `sync.url`(동기화 서버, https 서버가 생기면 여기). 키는 대표에게 안전한 경로로 받거나 자기 것을 쓴다.
-4. BeamNG는 Steam으로 설치 → 1회 실행·종료. 브리지가 시작할 때 모드를 연결한다. 게임 옵션 > 프로토콜 > 기타 프로토콜(`protocols_others_enabled`) 켜기.
-5. OBS(다각도 영상용, 선택): 웹소켓 서버 포트 4455 켜고 비밀번호를 `secrets.properties`에.
-6. 에뮬레이터 시간대: `adb shell cmd alarm set-timezone Asia/Seoul`.
+저장소에 없는 것: JDK·Android SDK·에뮬레이터 이미지·`secrets.properties`·BeamNG. 전부 `tools/` 아래에 넣는다(git 제외).
 
-`tools/env.cmd`는 드라이브 루트에 `askthecar-tools` 정션을 만들어 모든 도구를 그 경로로 잡는다. 실행할 때마다 정션을 다시 만들기 때문에 같은 드라이브에 이 프로젝트 사본이 둘이면 서로의 도구 경로를 덮어쓴다(폴더 이름에 쉼표가 있으면 QEMU와 Kotlin Compose 플러그인이 깨지기 때문). 도구 경로는 항상 정션을 쓴다. cmd 파일은 ASCII + CRLF로 쓴다(한글을 넣으면 깨짐).
+**사람만 할 수 있는 일은 먼저 부탁한다**: Windows 기능 켜기와 재부팅, Android Studio의 라이선스 동의(Pleos 이미지는 42dot SDK 라이선스), Steam 로그인, 비밀 키 입력.
+
+1. Windows 기능 "Windows 하이퍼바이저 플랫폼"(WHPX) 켜고 재부팅. Python 3 설치(`winget install Python.Python.3.12`, 표준 라이브러리만 쓴다). `relay`를 배포할 사람은 Node.js도.
+2. JDK 17(Temurin) zip을 풀어 `tools/jdk17/bin/java.exe`가 되게 둔다.
+3. `tools\env.cmd`를 한 번 실행한다. 드라이브 루트에 `askthecar-tools` 정션과 `local.properties`, 에뮬레이터 2대의 설정(`scripts/avd/*.config.ini`를 `tools/android-user/avd/`로 복사)이 생긴다. 에뮬레이터를 Android Studio로 새로 만들지 않는다.
+4. Android Studio를 설치하고(`tools/android-studio`에 두면 `scripts\start-studio.cmd`로 열림) Settings > Android SDK에서 **SDK 위치를 `<드라이브>:\askthecar-tools\sdk`** 로 정한다. 쉼표 없는 정션 경로여야 한다.
+   - SDK Update Sites에 추가: `https://nexus-playground.pleos.ai/repository/raw-releases/connect-avd/2.x/crp-sys-img.xml` (이 개발 PC가 실제로 쓴 주소)
+   - SDK Platforms(Show Package Details 켜기): Android 15 **Android SDK Platform 35**, **Google APIs Intel x86_64 Atom System Image**(API 35) / Android 14 **Pleos Connect v2.1.0 APIs Intel x86_64 Atom System Image**
+   - SDK Tools: **Build-Tools 35.0.0, Android Emulator, Platform-Tools, Command-line Tools (latest)**
+   - `sdkmanager --list`에는 Pleos 이미지가 안 나왔다(개발 PC에서 확인). 화면에서 설치한다.
+   - 설치 확인: `tools\sdk\system-images\android-34\pleos_car_emulator\x86_64\system.img`, `tools\sdk\system-images\android-35\google_apis\x86_64\system.img`. 경로가 다르면 `scripts/avd/*.config.ini`의 `image.sysdir.1`을 실제 경로로 고친다(`tools/android-user/avd/<이름>.avd/config.ini`도 같이).
+5. 하드웨어 가속 확인: `tools\run.cmd emulator -accel-check`. "hypervisor driver is not installed"면 1번이 안 된 것이다.
+6. `secrets.properties`를 루트에 만든다(항목: `pleos.clientId`, `pleos.clientSecret`, `anthropic.apiKey`, `relay.url`, `relay.token`, `obs.password`, `sync.url`). 없어도 빌드와 화면 시험은 되고 음성·문장 다듬기만 꺼진다. 키는 대표에게 안전한 경로로 받거나 자기 것을 쓴다.
+7. 빌드: 아래 "빌드와 실행"의 debug 명령.
+8. 첫 부팅: `explorer.exe "<프로젝트>\scripts\start-emulator.cmd"`(Claude 도구로 바로 띄우면 명령이 끝날 때 같이 꺼진다). 첫 부팅은 몇 분 걸린다. `tools\run.cmd adb -s emulator-5554 shell getprop sys.boot_completed`가 `1`이면 끝. "USB 디버깅 허용" 창이 뜨면 화면을 눌러 허용한다(`adb` 연결 전에는 `adb shell input tap`도 안 되니 사람에게 부탁).
+9. 시간대(기본이 미국): `tools\run.cmd adb -s emulator-5554 shell cmd alarm set-timezone Asia/Seoul`. 휴대폰(`emulator-5556`)도 같게. 휴대폰은 UTC로 돌아간 적이 있어 시각이 이상하면 다시 한다.
+10. 게임 없이 시험: README_TEST.md의 연습 사고 신호. 게임까지 쓸 때: BeamNG를 Steam으로 설치 → 1회 실행·종료 → 옵션 > 프로토콜 > 기타 프로토콜(`protocols_others_enabled`) 켜기(simple menu에서는 안 보임) → 브리지가 시작할 때 모드를 연결한다. OBS(다각도 영상, 선택)는 웹소켓 포트 4455를 켜고 비밀번호를 `secrets.properties`에.
+
+가장 빠른 길은 대표의 `tools/` 폴더를 통째로 복사하는 것이다(이때도 `tools\env.cmd`가 드라이브 문자를 다시 맞춘다).
+
+**막힐 때**
+
+| 증상 | 원인·해결 |
+|---|---|
+| 차 앱이 차량 값을 못 받음 | Quick Boot로 켜면 VHAL이 꺼진다. 항상 cold boot(`scripts/start-emulator.cmd`, config `fastboot.forceColdBoot=yes`) |
+| 빌드·에뮬레이터가 경로 오류 | 실제 폴더 경로 대신 `<드라이브>:\askthecar-tools` 정션을 쓴다. 쉼표가 있는 폴더는 QEMU와 Kotlin Compose 플러그인을 깨뜨린다 |
+| 도구가 다른 프로젝트 것으로 바뀜 | `tools\env.cmd`가 실행마다 정션을 다시 만든다. 같은 드라이브에 사본이 둘이면 서로 덮어쓴다. 드라이브당 하나만 |
+| AVD를 못 찾음 | `tools\env.cmd`를 다시 실행(포인터 `.ini`를 현재 드라이브로 다시 씀) |
+| 앱 파일·설정이 안 보임 | Pleos 운전자는 사용자 10이다. `--user 10` |
+| adb가 기기를 못 고름 | 2대면 `-s emulator-5554` 또는 `-s emulator-5556` 필수 |
+| 브리지가 콘솔 인증 실패 | `%USERPROFILE%\.emulator_console_auth_token`은 첫 부팅 때 생긴다 |
+| cmd 파일이 깨짐 | cmd는 ASCII + CRLF. 한글을 넣지 않는다 |
 
 ## 빌드와 실행
 
@@ -121,7 +147,7 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 
 ## 다음 할 일 (우선순위)
 
-1. 마지막 수정 뒤 release 빌드와 dex 검사, 휴대폰 홈의 사고 카드 화면 확인.
+1. 휴대폰 홈의 사고 카드 화면 확인. (release 빌드·dex 검사는 게임 폴더를 지운 상태로 2026-11-10 통과)
 2. 접수양식 초안 마무리(11/15 전): 팀 이름, 앱 이름 반영, 수치 원문 확인.
 3. 시연 영상 촬영(`끝내기.cmd` 뒤 새로 켜고, 지시등 끄고).
 4. release 전용 서명 키 만들기(지금은 디버그 키), `apk/팀명_앱이름_release.apk` 규칙, 실명 아닌 팀명 확정.
@@ -142,4 +168,5 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 - 왼쪽 패널의 차 뒤 깨짐, 아래 흰 네모는 Pleos `drivingview` 그림이다(앱이 그리지 않음).
 - 그림의 차가 아이오닉 5와 매우 비슷하다(엠블럼 없음). 공모전 권리 조항 확인 필요.
 - 디버그 APK는 약 98MB. release에서 x86_64를 빼면 2차 에뮬레이터 시연이 안 된다.
+- 새 PC 설치 안내(2026-11-10): 빈 폴더·다른 드라이브에서 `tools\env.cmd`의 정션·`local.properties`·에뮬레이터 설정 생성과 `-list-avds`까지만 시험했다. Android Studio 설치부터 첫 부팅까지 처음부터 해 본 적은 없다. 막히면 여기를 고쳐 다음 사람에게 남긴다.
 - 앱 안 일부 문자열·알림 제목에 옛 이름이 남았는지 공개 전 `Ask the Car`로 검색.

@@ -22,6 +22,11 @@ rem Rewrite sdk.dir every time so Gradle finds the SDK on whatever drive letter 
 set "SDKDIR=%ANDROID_HOME:\=\\%"
 set "SDKDIR=%SDKDIR::=\:%"
 > "%PROJECT%\local.properties" echo sdk.dir=%SDKDIR%
+rem First run on a new PC: create the two emulators from the templates in scripts\avd
+for %%A in (Pleos_Connect Phone) do if not exist "%ANDROID_AVD_HOME%\%%A.avd\config.ini" (
+  mkdir "%ANDROID_AVD_HOME%\%%A.avd" 2>nul
+  copy /y "%PROJECT%\scripts\avd\%%A.config.ini" "%ANDROID_AVD_HOME%\%%A.avd\config.ini" >nul
+)
 rem AVD pointer file holds an absolute path, so rewrite it for the current drive letter
 > "%ANDROID_AVD_HOME%\Pleos_Connect.ini" echo avd.ini.encoding=UTF-8
 >> "%ANDROID_AVD_HOME%\Pleos_Connect.ini" echo path=%ANDROID_AVD_HOME%\Pleos_Connect.avd
