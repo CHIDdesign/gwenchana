@@ -29,7 +29,7 @@
 | [`apk/gwenchana_car_release.apk`](apk/gwenchana_car_release.apk) | 차 앱 (Pleos Connect 에뮬레이터용, release) |
 | [`apk/gwenchana_phone_release.apk`](apk/gwenchana_phone_release.apk) | 휴대폰 앱 (release) |
 
-같은 파일을 [Releases](../../releases)에도 올립니다. 패키지 이름은 개발 때 정한 `com.askthecar`입니다.
+패키지 이름은 개발 때 정한 `com.askthecar`입니다.
 
 ## 실행 방법 (심사용)
 

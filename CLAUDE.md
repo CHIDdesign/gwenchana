@@ -101,7 +101,7 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 ```
 
 - 스택: AGP 8.8.2, Kotlin 2.1.21, Gradle 8.10.2, JDK 17, compile/target 35, min 28. Pleos Maven `https://nexus-playground.pleos.ai/repository/maven-releases/`.
-- **공개 APK는 반드시 `-Ppublic`**(relay·Pleos 키가 빠짐). 결과물은 `apk/gwenchana_car_release.apk`, `apk/gwenchana_phone_release.apk`로 복사하고 GitHub Releases에도 올린다(공식 규정 파일명은 `apk/팀명_앱이름_release.apk`, 팀 이름 확정 뒤 변경). release끼리는 평문 통신이 막혀 휴대폰 연동이 안 된다(https 서버 전까지 debug만). 빌드 뒤 dex에서 비밀값과 게임 클래스(`SimProfile`·`ScreenCover`·`NaviActivity`·`TestModeSource`·`BeamNgLink`·`SimReceiver`), 수신 신호(`RESET`·`TEST_CRASH`)가 없는지 검사한다.
+- **공개 APK는 반드시 `-Ppublic`**(relay·Pleos 키가 빠짐). 결과물은 `apk/gwenchana_car_release.apk`, `apk/gwenchana_phone_release.apk`로 복사한다(GitHub Releases v1.0.0은 아직 없음, 차 APK 90MB. 공식 규정 파일명은 `apk/팀명_앱이름_release.apk`, 팀 이름 확정 뒤 변경). release끼리는 평문 통신이 막혀 휴대폰 연동이 안 된다(https 서버 전까지 debug만). 빌드 뒤 dex에서 비밀값과 게임 클래스(`SimProfile`·`ScreenCover`·`NaviActivity`·`TestModeSource`·`BeamNgLink`·`SimReceiver`), 수신 신호(`RESET`·`TEST_CRASH`)가 없는지 검사한다.
 - 시연: 앱 빌드 → BeamNG 켜고 자유 주행 → `시작.cmd`(에뮬레이터 2대, 앱 설치, 브리지, 동기화 서버). 게임 없이: 차 앱에 `com.askthecar.TEST_CRASH` 신호(README_TEST.md).
 - 자동 시험: 게임을 `-enablemcp`로 켜고 `cd game\bridge` → `python crash_suite.py` 또는 `python crash_test.py`.
 - 차 에뮬레이터 `emulator-5554`(앱 파일은 사용자 10), 휴대폰 `emulator-5556`. adb는 PATH에 없다: `tools\run.cmd adb -s emulator-5554 ...`(둘 다 켜져 있으면 `-s` 필수). 앱 파일 읽기: `adb exec-out run-as com.askthecar --user 10 cat files/...`. `adb screencap`은 검게 나온다 → `adb emu screenrecord screenshot <폴더>`. Git Bash에서는 `export MSYS_NO_PATHCONV=1`.
@@ -116,6 +116,8 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 - 실제 BeamNG 시연 검증: 시동·내비·사고·안내·재현·기록·휴대폰·리셋 동작 확인(11-10, 재설계 반영 전 빌드 기준).
 - 동기화 서버는 **PC 시제품**(`sync_server.py`, 인증 없음, 평문 HTTP). 1차 제출까지만 허용된 예외이고 README에 밝혀야 한다.
 - 운영국 답(11-04): ADAS SDK 사용 불가. Connect SDK는 매니페스트 권한 선언이면 에뮬레이터 개발 가능. 추가 안내 대기: 대학생 신청, TTS 401, 나머지 SDK, 센서·카메라·초음파·CODA API.
+
+공개 주소: https://github.com/CHIDdesign/gwenchana (2026-11-10 공개). 작성자는 임시로 `Gwenchana Team`.
 
 ## 다음 할 일 (우선순위)
 
