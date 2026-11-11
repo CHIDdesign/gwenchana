@@ -142,6 +142,7 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 - 실제 BeamNG 시연 검증: 시동·내비·사고·안내·재현·기록·휴대폰·리셋 동작 확인(11-10, 재설계 반영 전 빌드 기준).
 - 동기화 서버는 **PC 시제품**(`sync_server.py`, 인증 없음, 평문 HTTP). 1차 제출까지만 허용된 예외이고 README에 밝혀야 한다.
 - 운영국 답(11-04): ADAS SDK 사용 불가. Connect SDK는 매니페스트 권한 선언이면 에뮬레이터 개발 가능. 추가 안내 대기: 대학생 신청, TTS 401, 나머지 SDK, 센서·카메라·초음파·CODA API.
+- 운영국 추가 답(11-05·11-11): 제공 자료는 Pleos Playground 공개 문서가 전부(별도 SDK·승인 없음), Android 표준은 Normal·Dangerous 권한까지·signature/privileged 불가, 에뮬레이터 개발과 권한 승인 전 소스·영상·APK 제출 가능, 문서에 없는 기능은 기획서에 향후 계획으로. 따라서 Pleos 차량 프로필 연동(`ACCESS_PROFILE_SERVICE`는 signature|privileged)은 향후 계획이고 지금은 "내 정보" 직접 선택. `SYSTEM_ALERT_WINDOW`는 특수 접근이라 애매(전체 화면 알림 대체 경로 있음).
 
 - 접수양식(기획서) 작성 중(2026-11-10): 공식 양식에 02 소개 1~8번과 앱명을 채운 파일 하나 `접수양식_임시/괜차나_접수양식.docx`(사용자가 받은 뒤 지울 임시 폴더). 01 참가신청서·03·04 서명은 실명이라 비워 둠. 빈칸: 7번 시연 영상 링크, 8번 숏폼 링크, 별지 1 화면 캡처. 분량 제한 없음 확인(양식 안 "소개 자료 분량 제한은 없습니다"). 마감 11/15 23:59, appdevchallenge@hyundai-partners.com.
 
