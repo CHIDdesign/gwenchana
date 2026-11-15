@@ -264,18 +264,19 @@ class CrashFlowState {
   setIncident(f) { this.incident = f(this.incident); }
   /** 운전자가 고른 사고 종류를 kind.txt 로 (스레드). 시험용 정지 지점: barrier 'kind-write:beforeMkdir' */
   chooseKind(k, byDriver = true) {
+    if (VARIANT.fixed && !byDriver && this.kindChosen) return; // 수정본: 운전자가 고른 뒤에는 추정으로 덮지 않음
     if (byDriver) this.kindChosen = true;
     this.kind = k;
     this.app.carSync.publish();
     const d = this.dir, app = this.app;
-    const text = k + (this.kindChosen ? '' : ' guess');
+    const text = k + (this.kindChosen ? '' : ' guess'), seq = this.kindSeq = (this.kindSeq || 0) + 1;
     if (d) this.lastKindWrite = app.rt.spawn('kind-write', function* () {
       yield { barrier: 'kind-write:beforeMkdir' };
       try {
         if (VARIANT.fixed) {
           // 수정본: 지운 사고 폴더는 다시 만들지 않는다. 지워졌으면 끝내고, 쓸 때는 삭제와 같은 잠금(Records) 안에서 다시 확인
           if (!app.fs.exists(d) && app.crashFlow.dir !== d) return;
-          app.records.write(d, () => app.fs.write(d + '/kind.txt', text, app.clock.nowMs()));
+          app.records.write(d, () => { if (seq === app.crashFlow.kindSeq) app.fs.write(d + '/kind.txt', text, app.clock.nowMs()); }); // 마지막 선택만
         } else { app.fs.mkdirs(d); app.fs.write(d + '/kind.txt', k + (app.crashFlow.kindChosen ? '' : ' guess'), app.clock.nowMs()); } // 공개본: 지운 폴더도 다시 만든다(TC-04 실패)
       } catch (e) { app.log('종류 기록 실패: ' + e.message); }
     });
@@ -403,7 +404,7 @@ class CrashWatcher {
     this.app = app; this.onLeftReverse = onLeftReverse; this.onIncident = onIncident;
     this.recorder = new Recorder(60);
     this.impact = new ImpactSensor(app, g => this.trigger(`충격 감지 (${f1(g)}g)`, false));
-    this.running = false; this.pendingSince = null; this.peakAtCrash = [0, null]; this.latestT = 0; this.loopTask = null;
+    this.running = false; this.pendingSince = null; this.peakAtCrash = [0, null]; this.latestT = 0; this.loopTask = null; this.seenThisRun = false;
   }
   start() {
     this.running = true;
@@ -418,7 +419,7 @@ class CrashWatcher {
       if (s.speedKph !== prev.speedKph) { heldSec = s.t - heldSince; heldSince = s.t; }
       if (prev.gear === 'R' && s.gear !== 'R') this.onLeftReverse();
       if (cf.incident && !cf.halted && isHalted(s)) { cf.halted = true; app.carSync.publish(); }
-      if (s.airbag && !prev.airbag && s.t - started > 3 && ((VARIANT.fixed && this.pendingSince != null) || s.t - started > REPEAT_SEC || s.t - this.lastIncidentT() > REPEAT_SEC)) this.trigger('에어백 전개', true); // 수정본: 저장 대기 중이면 언제든 큰 사고로 올림
+      if (s.airbag && !prev.airbag && s.t - started > 3 && ((VARIANT.fixed && this.seenThisRun) || s.t - started > REPEAT_SEC || s.t - this.lastIncidentT() > REPEAT_SEC)) this.trigger('에어백 전개', true); // 수정본: 이번 실행에서 사고를 본 뒤의 에어백은 언제든 받음(대기 중이면 승격, 아니면 새 큰 사고)
       else if (before && suddenDrop(before.speedKph - s.speedKph, heldSec, SUDDEN_DROP_KPH) && (!this.impact.available || this.impact.peak(s.t - 1.0, s.t)[0] >= 1.5))
         this.trigger(`속도 급감 (${f0(before.speedKph)}→${f0(s.speedKph)} km/h)`, false);
       if (this.pendingSince != null && s.t - this.pendingSince >= AFTER_SEC) {
@@ -453,7 +454,7 @@ class CrashWatcher {
       return;
     }
     const t = app.clock.nowMs() / 1000;
-    this.pendingSince = t; this.latestT = t;
+    this.pendingSince = t; this.latestT = t; this.seenThisRun = true;
     const pre = this.recorder.between(t - BEFORE_SEC, t);
     const peakNow = this.impact.peak(t - 1.5, t);
     const deg = peakNow[0] >= 1.0 ? peakNow[1] : null;

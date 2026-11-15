@@ -96,15 +96,19 @@ object CrashFlow {
 
     /** 운전자가 직접 골랐으면 추정이 나중에 바뀌어도 덮어쓰지 않음 */
     @Volatile var kindChosen = false
-    fun chooseKind(k: CrashKind, byDriver: Boolean = true) {
+    /** kind.txt 쓰기 순서: 스레드가 늦게 끝나도 마지막으로 고른 값만 남는다 */
+    private val kindSeq = java.util.concurrent.atomic.AtomicInteger()
+    @Synchronized fun chooseKind(k: CrashKind, byDriver: Boolean = true) {
+        if (!byDriver && kindChosen) return // 운전자가 이미 골랐으면 추정으로 덮어쓰지 않는다
         if (byDriver) kindChosen = true
         kind = k
         CarSync.publish() // 휴대폰 앱도 같은 종류·단계로
         val text = k.name + if (kindChosen) "" else " guess"
+        val seq = kindSeq.incrementAndGet()
         // 동의 철회·"모두 지우기"로 지운 사고 폴더를 다시 만들지 않는다. 지워졌으면 그냥 끝내고, 쓸 때는 삭제와 같은 잠금 안에서 다시 확인(Records)
         dir?.let { d -> thread(isDaemon = true) { runCatching {
             if (!d.exists() && CrashFlow.dir != d) return@runCatching
-            Records.write(d) { File(d, "kind.txt").writeText(text) }
+            Records.write(d) { if (seq == kindSeq.get()) File(d, "kind.txt").writeText(text) }
         } } }
     }
     /** 사고 기록·재현 준비 진행도 0..1 (재현 화면의 "준비 중" 게이지) */
@@ -373,6 +377,8 @@ class CrashWatcher(private val ctx: Context, private val onLeftReverse: () -> Un
     @Volatile private var peakAtCrash: Pair<Double, Double?> = 0.0 to null
     /** 가장 최근 사고 시각. 옛 사고의 경위서 스레드가 새 사고 화면 상태를 덮어쓰지 않게 */
     @Volatile private var latestT = 0.0
+    /** 이번 실행(앱 프로세스)에서 사고를 한 번이라도 감지했는지. 에어백 억제(재시작 직후 늦게 온 값)는 이것이 false 일 때만 */
+    @Volatile private var seenThisRun = false
 
     fun start() {
         if (!impact.start()) Log.w("AskTheCar", "가속도 센서 없음 — 속도 급감·에어백으로만 감지")
@@ -390,10 +396,11 @@ class CrashWatcher(private val ctx: Context, private val onLeftReverse: () -> Un
                 if (CrashFlow.incident != null && !CrashFlow.halted && halted(s)) { CrashFlow.halted = true; CarSync.publish() } // 휴대폰이 정차 신호를 받고 울리게
                 when {
                     // 에어백이 새로 켜지면 큰 사고. 시작 직후 3초는 무시: 앱이 다시 켜지면 이미 터져 있던 에어백(게임 차 그대로)이 새 사고처럼 보임.
-                    // 저장 대기 중인 사고가 있으면 켜진 지 얼마가 지났든 그 사고를 큰 사고로 올린다(충격 감지 직후 에어백이 터진 경우).
-                    // 대기 중인 사고가 없을 때만: 켜진 지 60초 안에 방금(60초 안) 기록한 사고가 있으면 같은 사고로 본다(앱이 죽었다 살아나 에어백 값이 늦게 온 경우).
-                    // 켜진 지 60초가 지나면 억제하지 않는다: 디스크의 직전 기록 때문에 "리셋하고 바로 다시 부딪힌" 사고를 놓쳤음
-                    s.airbag && !prev.airbag && s.t - started > 3 && (pendingSince != null || s.t - started > REPEAT_SEC || s.t - lastIncidentT() > REPEAT_SEC) -> trigger("에어백 전개", severe = true)
+                    // 이번 실행에서 이미 사고를 감지했다면 그 뒤의 에어백은 앱이 지켜보는 동안 켜진 것: 언제든 받는다.
+                    // 저장 대기 중이면 그 사고를 큰 사고로 올리고, 대기가 끝났거나 "사고가 아니에요"로 닫은 뒤면 새 큰 사고로 기록한다.
+                    // 이번 실행에서 아직 사고가 없을 때만: 켜진 지 60초 안에 최근(60초 안) 기록한 사고가 있으면 같은 사고로 본다
+                    // (앱이 죽었다 살아나, 이미 터져 있던 에어백 값이 3초 넘어 늦게 온 경우). 켜진 지 60초가 지나면 억제하지 않는다.
+                    s.airbag && !prev.airbag && s.t - started > 3 && (seenThisRun || s.t - started > REPEAT_SEC || s.t - lastIncidentT() > REPEAT_SEC) -> trigger("에어백 전개", severe = true)
                     // 속도 급감만으로는 사고로 안 봄(순간이동·센서 오류도 급감처럼 보임) → 가속도 센서도 1.5g 넘게 느꼈을 때만.
                     // 센서가 없는 차면 급감만으로 (없으면 에어백 사고만 잡히게 됨)
                     before != null && suddenDrop(before.speedKph - s.speedKph, heldSec, SUDDEN_DROP_KPH) && (!impact.available || impact.peak(s.t - 1.0, s.t).first >= 1.5) ->
@@ -420,6 +427,7 @@ class CrashWatcher(private val ctx: Context, private val onLeftReverse: () -> Un
         val t = System.currentTimeMillis() / 1000.0
         pendingSince = t
         latestT = t
+        seenThisRun = true
         // 전원이 끊겨도 남도록 충돌 전 30초를 바로 저장 (10초 뒤 finish 가 전체 구간으로 덮어씀)
         val pre = recorder.between(t - BEFORE_SEC, t)
         val peakNow = impact.peak(t - 1.5, t)
@@ -461,6 +469,8 @@ class CrashWatcher(private val ctx: Context, private val onLeftReverse: () -> Un
         CrashFlow.setIncident { incident }
         CrashFlow.record = null
         CrashFlow.status = "사고 감지: $reason"
+        // 감지하는 사이 동의 철회·"모두 지우기"가 끝났으면(CrashFlow.dir 가 비워짐) 사고를 다시 띄우지 않는다
+        if (CrashFlow.dir != dir) { pendingSince = null; CrashFlow.setIncident { cur -> if (cur?.t == t) null else cur }; return }
         onIncident(incident)
     }
 
@@ -529,9 +539,10 @@ class CrashWatcher(private val ctx: Context, private val onLeftReverse: () -> Un
             val filming = thread(name = "cameras", isDaemon = true) { runCatching {
                 val video = File(dir, CameraVideo.FILE)
                 Sim.link?.cameraVideo(video)?.let { end ->
+                    val videoSha = sha256(video) // 큰 파일이라 잠금 밖에서 계산
                     Records.write(dir) {
                         File(dir, CameraVideo.END_FILE).writeText(end.toString())
-                        File(dir, "cameras.sha256").writeText(sha256(video))
+                        File(dir, "cameras.sha256").writeText(videoSha)
                     }
                 }
             }.onFailure { Log.w("AskTheCar", "카메라 영상 저장 실패", it) } }
