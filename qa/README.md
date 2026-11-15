@@ -5,14 +5,15 @@
 | 폴더 | 내용 | 실행 |
 |---|---|---|
 | [`web/`](web/README.md) | **웹 시험장.** 운전 시뮬레이터 + 차 화면 + 시험 케이스 16개. 앱 로직을 JS로 옮긴 사본이에요. 공개본(main `5ffe61e`)과 수정본을 골라 같은 케이스를 돌릴 수 있어요 | 바로 써 보기: https://claude.ai/artifact/3yNqsuMJnJ6jLmUEZAwmEB · 직접: `node qa/web/build.mjs` 후 `qa/web/dist/index-local.html` |
-| [`jvm/`](jvm/README.md) | **실제 코드 JVM 시험대.** 저장소의 Kotlin 소스를 그대로 컴파일하고, 안드로이드 부분만 최소 대역으로 바꿔 TC-04·DRV-12 등을 돌려요 | `sh qa/jvm/run.sh <소스 루트>` |
+| [`jvm/`](jvm/README.md) | **실제 코드 JVM 시험대.** 저장소의 Kotlin 소스를 그대로 컴파일하고, 안드로이드 부분만 최소 대역으로 바꿔 TC-04·DRV-12 등을 돌려요 | `bash qa/jvm/run.sh <소스 루트>` |
 | [`samples/`](samples/README.md) | 팀 QA 샘플 4개(JUnit 계약: `QaSampleTest`, `QaAdapters`, `QaFixtures`) | samples/README.md |
 | [`../docs/qa/EXPECTED_BEHAVIOR.md`](../docs/qa/EXPECTED_BEHAVIOR.md) | 기대 동작 명세 (요구사항 ID: DET, REC, GUIDE, SYNC, PRIV …) | — |
 
 ## 이번에 고친 것
 
-1. **에어백 승격 (DRV-12, 명세 DET-02·DET-04).** 충격으로 먼저 잡힌 사고가 저장을 기다리는 동안 에어백 신호가 오면, 앱을 켠 뒤 지난 시간과 관계없이 그 사고를 큰 사고(에어백)로 올려요. 기다리는 사고가 없을 때만, 켠 지 60초 안에 방금 기록한 사고가 있으면 같은 사고로 봐요(앱 재시작 뒤 늦게 온 에어백 값). 코드: `Crash.kt` CrashWatcher의 에어백 조건.
-2. **삭제 뒤 늦은 쓰기 (TC-04, 명세 PRIV-01).** 사고 폴더에 쓰는 모든 작업(사고 종류, 충돌 전 저장, 최종 저장, 경위서, 사진 복사, 영상 끝 시각)이 `Records.write`를 거쳐요. 삭제(`Consent.deleteRecords`)와 같은 잠금 안에서 DRIVE 동의와 지금 사고 폴더를 다시 확인하고, 지운 폴더는 다시 만들지 않아요. 코드: `Consent.kt`의 `Records`, `Crash.kt`의 각 저장 지점.
+1. **에어백 (DRV-12·12b·12c, 명세 DET-02·DET-04).** 이번 실행에서 사고를 감지한 뒤의 에어백 신호는 언제든 받아요. 저장을 기다리는 사고가 있으면 그 사고를 큰 사고로 올리고, 기다림이 끝났거나 "사고가 아니에요"로 닫은 뒤면 새 큰 사고로 기록해요. 이번 실행에서 아직 사고가 없을 때만, 켠 지 60초 안에 방금 기록한 사고가 있으면 같은 사고로 봐요(앱이 다시 켜진 뒤 이미 터져 있던 에어백 값이 늦게 온 경우). 코드: `Crash.kt` CrashWatcher의 에어백 조건과 `seenThisRun`.
+2. **삭제 뒤 늦은 쓰기 (TC-04, 명세 PRIV-01).** 사고 폴더에 쓰는 백그라운드 작업(사고 종류, 충돌 전 저장, 최종 저장, 경위서, 사진 복사, 영상 끝 시각)이 모두 `Records.write`를 거쳐요. 삭제(`Consent.deleteRecords`)와 같은 잠금 안에서 DRIVE 동의와 지금 사고 폴더를 다시 확인하고, 지운 폴더는 다시 만들지 않아요. 사고를 감지하는 도중에 삭제가 끝나면 그 사고를 화면에 다시 띄우지 않아요. 코드: `Consent.kt`의 `Records`, `Crash.kt`의 각 저장 지점.
+3. **사고 종류 기록 순서.** 운전자가 고른 종류는 나중에 들어온 추정이 덮지 않고, `kind.txt`에는 마지막으로 고른 값만 남아요.
 
 ## 결과
 
@@ -25,7 +26,9 @@
 | DRV-01~11 자동 운전 11개 | PASS | PASS |
 | DRV-12 켠 직후 충격 → 에어백 | FAIL_REQUIREMENT | **PASS** |
 
-웹 시험장(Node와 브라우저 같은 결과). 실제 코드 결과는 [`jvm/README.md`](jvm/README.md)에 있어요.
+웹 시험장 결과예요(Node와 브라우저 같은 결과).
+
+**실제 Kotlin 코드(JVM 시험대):** 공개본에서는 TC-04, DRV-12, DRV-12b(사고 아님 뒤 에어백), DRV-12c(저장 대기 끝난 뒤 에어백)가 모두 실패하고, 수정본에서는 모두 통과해요. TC-01은 둘 다 통과, 60초 뒤 에어백(대조군)도 둘 다 통과해요. TC-02·TC-03은 연결할 실제 기능이 아직 없어 `BLOCKED_ADAPTER`예요. 줄별 결과는 [`jvm/README.md`](jvm/README.md)에 있어요.
 
 TC-02·TC-03은 명세의 **보강 제안**(자료 버전별 저장 확인 SYNC-01, 영속 재시도 §4.6)이 아직 앱에 없어서 실패해요. 고장이 아니라 아직 만들지 않은 기능이에요.
 

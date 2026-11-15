@@ -90,6 +90,7 @@
 | `chart1_accident_experience_type.png` / `.svg` | 차트 1: 사고 경험 여부(n=102)와 최근 사고 유형(n=73) |
 | `chart2_hardest_after_accident.png` / `.svg` | 차트 2: 사고 직후 가장 힘들었던 점(n=73) |
 | `chart3_wanted_features.png` / `.svg` | 차트 3: 원하는 어시스턴스 기능(n=102, 복수 선택) |
+| `chart3b_wanted_features_experienced.png` / `.svg` | 차트 3b: 원하는 어시스턴스 기능, 사고 경험자 기준(n=73, 복수 선택). 제안서의 ‘사고를 겪어 본 73명 가운데 64%·60%’ 문장과 짝을 이루는 차트 |
 | `survey_aggregates.csv` | 문항별 집계만 담은 CSV(UTF-8). 열: `question_id, question, type, base, base_n, option, count, percent` |
 
 - PNG는 가로 1600px이며, A4 본문 폭(약 16cm)에 맞춰 넣으면 글자가 약 7.5~12pt로 보입니다. Google 문서에는 PNG를 넣으세요(Google 문서는 SVG 삽입을 지원하지 않습니다).
