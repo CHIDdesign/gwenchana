@@ -7,6 +7,27 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 /**
+ * 사고 폴더 쓰기와 삭제(Consent.deleteRecords)의 잠금.
+ * 저장 스레드는 폴더 참조를 먼저 잡고 조금 뒤에 쓴다. 그 사이 동의 철회·"모두 지우기"가 폴더를 지워도
+ * 늦게 도착한 쓰기가 폴더를 다시 만들지 않도록, 모든 사고 기록 쓰기는 이 잠금 안에서 다시 확인한다.
+ * - 주행 기록 동의(DRIVE)가 꺼져 있으면 아무것도 쓰지 않는다.
+ * - 폴더가 없으면 지금 사고의 폴더(CrashFlow.dir)일 때만 만든다. 지운 사고는 CrashFlow.dir 가 비어 있어 만들지 않는다.
+ * 잠금 안에서는 짧은 파일 쓰기만 한다(네트워크·사진 분석·영상 저장은 밖에서).
+ */
+object Records {
+    private val lock = Any()
+
+    /** 쓸 수 있으면 block 결과, 지워졌거나 동의가 꺼져 있으면 null(아무것도 쓰지 않음) */
+    fun <T> write(dir: File, block: () -> T): T? = synchronized(lock) {
+        if (!Consent.allowed(Consent.Item.DRIVE)) return null
+        if (!dir.isDirectory && (CrashFlow.dir != dir || !(dir.mkdirs() || dir.isDirectory))) return null
+        block()
+    }
+
+    fun deleting(block: () -> Unit) = synchronized(lock, block)
+}
+
+/**
  * 개인정보 동의 (Pleos 앱마켓 심사 User Privacy & Security).
  * 사고 기록·안내(주행·위치·진술·사진·휴대폰 연동) = 필수 묶음, 외부 AI 전송(제3자 제공) = 선택. 동의 화면의 [동의하고 시작] 버튼으로만 켜진다.
  * 끄면(철회) 사고 기록 전체를 바로 지운다 — 항목별로 나눠 지우지 않고 단순하게.
@@ -60,9 +81,12 @@ object Consent {
 
     /** 사고 기록 전부 삭제 (철회·"모두 지우기") */
     fun deleteRecords(ctx: Context) {
-        CrashFlow.dir = null // 먼저 비운다: 대기 중인 사고의 저장(finish)·종류 기록이 폴더를 다시 만들지 않게
-        File(ctx.filesDir, "crashes").deleteRecursively()
-        ctx.cacheDir.listFiles()?.filter { it.name.startsWith("camera_") }?.forEach { it.delete() }
+        // 늦게 끝나는 저장(충돌 전 저장·finish·경위서·종류·사진)과 같은 잠금: 지우는 동안 새 파일이 끼어들지 않고, 지운 뒤에는 폴더를 다시 만들지 않는다
+        Records.deleting {
+            CrashFlow.dir = null // 지금 사고 폴더를 비운다: 이후 쓰기는 이 폴더를 다시 만들 수 없다
+            File(ctx.filesDir, "crashes").deleteRecursively()
+            ctx.cacheDir.listFiles()?.filter { it.name.startsWith("camera_") }?.forEach { it.delete() }
+        }
         CrashFlow.record = null
         CrashFlow.setIncident { null }
         CrashFlow.closed++ // 열린 사고 화면을 닫음. 화면이 없으면 아무 일도 없다

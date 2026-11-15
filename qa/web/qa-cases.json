@@ -1,0 +1,182 @@
+{
+  "format": "gwenchana-qa-cases/1",
+  "basedOn": { "spec": "EXPECTED_BEHAVIOR.md v0.3 (QA-PROPOSAL-01)", "product": "1fac695", "samples": "qa/samples QaSampleTest.kt TC-01..04" },
+  "notes": [
+    "TC-01..04 의 steps 는 QaSampleTest.kt 와 같은 순서·같은 판정이다. do = QaAdapters 의 Harness 메서드, expect = Observation 필드(같은 이름).",
+    "같은 파일을 JUnit 쪽 실행기가 읽어 실제 Kotlin 코드에 붙인 어댑터로 돌릴 수 있게 만들었다. DRV-* 는 물리 시험장이 필요해서 웹에서만 돈다.",
+    "센서 값 \"2.56*G\" 는 Kotlin Float 계산과 같게 읽는다: Float(2.56) × Float(G) 를 Float 로. G = 9.80665f."
+  ],
+  "fixtures": {
+    "ACCOUNT": "qa-driver-a",
+    "INCIDENT_EPOCH_SECONDS": 1700000000.0,
+    "GRAVITY": 9.80665,
+    "G_TOLERANCE": 1e-5,
+    "documents": {
+      "preview": { "account": "qa-driver-a", "incidentEpochSeconds": 1700000000.0, "semanticVersion": 1, "statement": "qa-preview-v1", "finalRecord": false },
+      "final": { "account": "qa-driver-a", "incidentEpochSeconds": 1700000000.0, "semanticVersion": 2, "statement": "qa-final-v2", "finalRecord": true }
+    }
+  },
+  "cases": [
+    {
+      "id": "TC-01", "type": "sensor", "title": "센서 보정과 음수 방향", "requirement": ["SAMPLE-01", "DET-01"],
+      "drivable": false, "why": "정확한 Float 센서 벡터 한 번은 운전으로 만들 수 없어 직접 넣는다",
+      "rows": [
+        { "name": "A_below", "x": 0, "y": "G", "z": "2.54*G", "expectedG": 2.4892, "expectedCallbacks": 0 },
+        { "name": "B_positive", "x": 0, "y": "G", "z": "2.56*G", "expectedG": 2.5088, "expectedCallbacks": 1 },
+        { "name": "C_negative", "x": 0, "y": "G", "z": "-2.56*G", "expectedG": 2.5088, "expectedCallbacks": 1 },
+        { "name": "D_vertical", "x": 0, "y": "G+2.56*G", "z": 0, "expectedG": 2.5088, "expectedCallbacks": 1 }
+      ]
+    },
+    {
+      "id": "TC-02", "type": "delivery", "failClass": "보강 제안 미구현 — 자료 버전별 저장 확인(SYNC-01·DEC-06)",  "title": "임시 자료 ACK를 완성본 ACK로 쓰지 않기", "requirement": ["SAMPLE-02", "SYNC-01", "GUIDE-03"],
+      "drivable": false, "why": "휴대폰 저장 실패·ACK 보류는 운전으로 만들 수 없어 가상 서버·휴대폰으로 진행한다",
+      "gap": "현재 제품은 seen 에 사고 시각만 남기고 휴대폰이 사고당 한 번만 ACK 한다(Sync.ackSeen). 완성본이 서버에 올라가는 순간 차가 '휴대폰에 도착'으로 바뀐다.",
+      "steps": [
+        { "do": "advanceTo", "ms": 1000 },
+        { "do": "publishFromCar", "doc": "preview" }, { "do": "runReady" }, { "do": "acceptPendingUpload" }, { "do": "runReady" },
+        { "do": "deliverServerDocumentToPhone" }, { "do": "runReady" },
+        { "label": "+1초 임시 자료", "expect": [
+          { "field": "phoneStoredStatement", "equals": "qa-preview-v1" },
+          { "field": "phoneCaseCount", "equals": 1 },
+          { "field": "acknowledgementRequests", "equals": 1, "msg": "임시 자료 저장 확인도 실제로 발생해야 함" } ] },
+        { "do": "forwardPendingPhoneAcknowledgements" }, { "do": "runReady" },
+        { "do": "advanceTo", "ms": 11000 },
+        { "do": "publishFromCar", "doc": "final" }, { "do": "runReady" }, { "do": "acceptPendingUpload" }, { "do": "runReady" },
+        { "label": "+11초 완성본 서버 접수, 폰 전달 전", "expect": [
+          { "field": "carRecordSaved", "equals": true },
+          { "field": "carServerAccepted", "equals": true },
+          { "field": "carShowsFinalArrived", "equals": false, "msg": "임시 자료 ACK를 완성본 ACK로 쓰면 안 됨" } ] },
+        { "do": "failNextPhoneWrite" }, { "do": "deliverServerDocumentToPhone" }, { "do": "runReady" },
+        { "label": "폰 쓰기 실패", "expect": [
+          { "field": "phoneStoredStatement", "equals": "qa-preview-v1", "msg": "쓰기 실패 후 기존 파일 보존" },
+          { "field": "acknowledgementRequests", "equals": 1, "msg": "실패한 쓰기의 ACK 금지" },
+          { "field": "carShowsFinalArrived", "equals": false, "msg": "저장 실패" } ] },
+        { "do": "deliverServerDocumentToPhone" }, { "do": "runReady" },
+        { "label": "다시 받아 저장 성공, ACK 보류", "expect": [
+          { "field": "phoneStoredStatement", "equals": "qa-final-v2" },
+          { "field": "phoneCaseCount", "equals": 1 },
+          { "field": "acknowledgementRequests", "equals": 2, "msg": "완성본의 새 저장 확인 필요" },
+          { "field": "carShowsFinalArrived", "equals": false, "msg": "ACK 전달 전" } ] },
+        { "do": "forwardPendingPhoneAcknowledgements" }, { "do": "runReady" },
+        { "label": "완성본 ACK 전달", "expect": [
+          { "field": "carShowsFinalArrived", "equals": true, "msg": "완성본 ACK 이후" },
+          { "field": "phoneCaseCount", "equals": 1 } ] }
+      ]
+    },
+    {
+      "id": "TC-03", "type": "retry", "failClass": "제안 기능 미구현 — 일반 업로드 영속 재시도(§4.6)",  "title": "실패 5초 후 재시도, 중간 재시작에도 유지", "requirement": ["SAMPLE-03", "SYNC-02", "QA-PROPOSAL-01 4.6"],
+      "drivable": false, "why": "503 응답·앱 재시작·가짜 시계는 운전으로 만들 수 없다",
+      "gap": "현재 제품의 일반 업로드(CarSync.publish)에는 대기열·재시도가 없다(삭제·닫기만 30초 재시도).",
+      "steps": [
+        { "label": "시작 시각", "expect": [ { "field": "nowMs", "equals": 0 } ] },
+        { "do": "respondToUploadsWith", "status": 503 }, { "do": "saveAndStartUpload", "doc": "final" }, { "do": "runReady" },
+        { "label": "0ms 첫 업로드 503", "expect": [
+          { "field": "attempts.startedAtMs", "equals": [0], "msg": "초기 요청을 실제로 보냈는지" },
+          { "field": "localStatement", "equals": "qa-final-v2" },
+          { "field": "uploadQueueSize", "equals": 1 },
+          { "field": "carServerAccepted", "equals": false } ] },
+        { "do": "advanceTo", "ms": 2000 }, { "do": "restartApp" }, { "do": "runReady" },
+        { "label": "2000ms 재시작", "expect": [
+          { "field": "nowMs", "equals": 2000, "msg": "재시작은 시계를 초기화하지 않음" },
+          { "field": "attempts.count", "equals": 1, "msg": "아직 5초가 되지 않음" } ] },
+        { "do": "respondToUploadsWith", "status": 200 }, { "do": "advanceTo", "ms": 4999 },
+        { "label": "4999ms", "expect": [ { "field": "attempts.count", "equals": 1, "msg": "너무 이른 재시도 금지" } ] },
+        { "do": "advanceTo", "ms": 5000 },
+        { "label": "5000ms 재시도 성공", "expect": [
+          { "field": "attempts.startedAtMs", "equals": [0, 5000] },
+          { "field": "attempts.allDocuments", "equals": "final", "msg": "계정/사고/버전/본문 보존" },
+          { "field": "localStatement", "equals": "qa-final-v2" },
+          { "field": "serverStoredStatement", "equals": "qa-final-v2" },
+          { "field": "serverCaseCount", "equals": 1 },
+          { "field": "uploadQueueSize", "equals": 0 },
+          { "field": "carServerAccepted", "equals": true },
+          { "field": "carShowsFinalArrived", "equals": false, "msg": "서버 200만으로 폰 도착 완료 금지" } ] },
+        { "do": "advanceTo", "ms": 20000 },
+        { "label": "20000ms", "expect": [ { "field": "attempts.count", "equals": 2, "msg": "성공한 버전은 다시 전송하지 않음" } ] }
+      ]
+    },
+    {
+      "id": "TC-04", "type": "deletion", "failClass": "공개본 5ffe61e 결함 — 늦은 종류 저장이 지운 사고 폴더를 다시 만듦(PRIV-01). 수정본은 Records.write 로 고침",  "title": "동의 철회 뒤 늦은 종류 저장이 사고를 되살리지 않기", "requirement": ["SAMPLE-04", "PRIV-01"],
+      "drivable": false, "why": "저장 직전에 작업을 멈추는 것(barrier)은 운전으로 만들 수 없다",
+      "gap": "CrashFlow.chooseKind 의 스레드가 폴더 d 를 먼저 잡는다. deleteRecords 가 CrashFlow.dir 을 비워도 멈춰 있던 스레드가 d.mkdirs() 로 폴더와 kind.txt 를 다시 만든다.",
+      "steps": [
+        { "do": "seedConsentedCase", "doc": "final" },
+        { "label": "준비", "expect": [
+          { "field": "driveConsent", "equals": true },
+          { "field": "incidentDirectoryExists", "equals": true },
+          { "field": "incidentFiles", "nonEmpty": true, "msg": "삭제할 실제 파일이 있어야 함" },
+          { "field": "visibleIncidentCount", "equals": 1 } ] },
+        { "do": "startKindWriteAndPauseBeforeMkdir" }, { "do": "runReady" },
+        { "label": "종류 저장이 정지 지점에", "expect": [
+          { "field": "kindWritePausedBeforeMkdir", "equals": true, "msg": "실제 저장 작업이 barrier에 도달해야 함" },
+          { "field": "kindWriteFinished", "equals": false } ] },
+        { "do": "withdrawDriveConsent" }, { "do": "runReady" },
+        { "label": "철회 직후", "deleted": true },
+        { "do": "releaseKindWrite" }, { "do": "awaitKindWriteFinished" }, { "do": "runReady" },
+        { "label": "늦은 종류 저장 완료 뒤", "expect": [ { "field": "kindWriteFinished", "equals": true, "msg": "작업을 영원히 막아둔 채 통과시키지 않음" } ], "deleted": true },
+        { "do": "restartApp" }, { "do": "runReady" },
+        { "label": "재시작 뒤", "deleted": true }
+      ]
+    },
+    {
+      "id": "DRV-01", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "정면 50 km/h · 세워 둔 차", "scenario": "frontParked", "params": { "kph": 50, "gap": 60 }, "persona": "guest", "seed": 11,
+      "expect": { "detected": true, "severe": true, "impactDeg": { "center": 0, "tol": 30 }, "highway": false, "kind": "UNKNOWN", "notAccidentButton": false,
+        "firstSteps": ["PHONE", "CALM", "HAZARD"], "recordSaved": true, "factsInclude": ["충격 감지", "에어백 전개 신호"] },
+      "basis": "가속도 ≥ 2.5g(Crash.kt) · 합성 에어백: 정면 Δv ≥ 20km/h · 달리다 정면은 대상을 묻는다(inferKind) · 시내+에어백 = 차로 오는 전화부터(Guide.kt)"
+    },
+    {
+      "id": "DRV-02", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "정면 25 km/h · 세워 둔 차", "scenario": "frontParked", "params": { "kph": 25, "gap": 40 }, "persona": "guest", "seed": 12,
+      "expect": { "detected": true, "severe": false, "impactDeg": { "center": 0, "tol": 30 }, "highway": false, "kind": "UNKNOWN", "notAccidentButton": true,
+        "firstSteps": ["CALM", "HAZARD", "PERSON"], "recordSaved": true, "factsInclude": ["충격 감지"] },
+      "basis": "Δv 약 13km/h: 합성 에어백 없음, 가속도 경로로 감지 · 손님(사회초년생 기본값) 시내 = 안심 단계부터"
+    },
+    {
+      "id": "DRV-03", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "정차 중 뒤에서 받힘 · 30 km/h", "scenario": "rearHitWhileStopped", "params": { "kph": 30 }, "persona": "guest", "seed": 13,
+      "expect": { "detected": true, "severe": false, "impactDeg": { "center": 180, "tol": 35 }, "highway": false, "kind": "VEHICLE", "notAccidentButton": true, "recordSaved": true },
+      "basis": "멈춰 있을 때 충격 = 차(inferKind) · 합성 에어백은 뒤 충격에 터지지 않음"
+    },
+    {
+      "id": "DRV-04", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "교차로 정차 중 오른쪽에서 받힘 · 25 km/h", "scenario": "sideHitRight", "params": { "kph": 25 }, "persona": "junho", "seed": 14,
+      "expect": { "detected": true, "severe": false, "impactDeg": { "center": 90, "tol": 40 }, "highway": false, "kind": "VEHICLE", "notAccidentButton": true,
+        "firstSteps": ["HAZARD", "PERSON", "MOVE_RISK"], "recordSaved": true },
+      "basis": "측면 Δv 약 14km/h(옆 에어백 기준 18km/h 미만) · 바쁜 직장인(간결) 시내 = 비상등부터"
+    },
+    {
+      "id": "DRV-05", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "후진 12 km/h · 볼라드", "scenario": "reversePole", "params": { "kph": 12, "gap": 6 }, "persona": "guest", "seed": 15,
+      "expect": { "detected": true, "severe": false, "impactDeg": { "center": 180, "tol": 40 }, "kind": "UNKNOWN", "notAccidentButton": true, "recordSaved": true },
+      "basis": "후진 중 뒤 충격은 차·기둥 모두 흔해 운전자에게 묻는다(inferKind)"
+    },
+    {
+      "id": "DRV-06", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "급제동 60→0 km/h (사고 아님)", "scenario": "hardBrake", "params": { "kph": 60 }, "persona": "guest", "seed": 16,
+      "expect": { "detected": false }, "basis": "감속 약 0.9g < 2.5g, 0.3초 급감 < 15km/h"
+    },
+    {
+      "id": "DRV-07", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "슬라럼 40 km/h (사고 아님)", "scenario": "slalom", "params": { "kph": 40, "steer": 0.45, "period": 1.2, "sec": 8 }, "persona": "guest", "seed": 17,
+      "expect": { "detected": false }, "basis": "옆 가속도 약 0.8g 이하"
+    },
+    {
+      "id": "DRV-08", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "과속방지턱 40 km/h", "scenario": "speedBump", "params": { "kph": 40 }, "persona": "guest", "seed": 18,
+      "expect": { "detected": true, "severe": false, "recordSaved": true },
+      "basis": "현재 기준(DET-01)은 수직 충격도 3축 크기에 포함해 2.5g 이상이면 감지한다. 제안 4.4에선 '의심 충격'. 수직 충격의 방향 값은 뜻이 없다"
+    },
+    {
+      "id": "DRV-09", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "과속방지턱 20 km/h (사고 아님)", "scenario": "speedBump", "params": { "kph": 20 }, "persona": "guest", "seed": 19,
+      "expect": { "detected": false }, "basis": "수직 약 1.6g < 2.5g"
+    },
+    {
+      "id": "DRV-10", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "고속도로 100 km/h · 느린 트럭 추돌", "scenario": "highwayRearEnd", "params": { "kph": 100, "truckKph": 30, "gap": 300 }, "persona": "sunja", "seed": 20,
+      "expect": { "detected": true, "severe": true, "highway": true, "impactDeg": { "center": 0, "tol": 30 }, "kind": "UNKNOWN", "notAccidentButton": false,
+        "firstSteps": ["HAZARD", "TRUNK", "WALK"], "recordSaved": true, "factsInclude": ["에어백 전개 신호"] },
+      "basis": "제한속도 100 ≥ 80 = 고속도로(CrashWatcher.isHighway) · 고속도로 순서는 비상등→트렁크→대피(Guide.kt)"
+    },
+    {
+      "id": "DRV-11", "type": "driving", "failClass": "현행 동작과 다름 — 회귀이거나 시뮬레이터 모델 차이", "title": "벽 스침 10 km/h (사고 아님)", "scenario": "wallScrape", "params": { "kph": 10, "angle": 3, "sec": 9 }, "persona": "guest", "seed": 21,
+      "expect": { "detected": false }, "basis": "README_TEST: 살짝 스치면 사고로 안 잡힌다"
+    },
+    {
+      "id": "DRV-12", "type": "driving", "failClass": "공개본 5ffe61e 결함 — 켠 지 60초 안에는 충격 뒤 에어백 승격이 막힘(DET-02·DET-04). 수정본에서 고침", "title": "앱 켠 직후 정면 50 km/h · 충격 먼저, 에어백 나중", "scenario": "frontParked", "params": { "kph": 50, "gap": 60 }, "persona": "guest", "seed": 22, "warmupSec": 0,
+      "expect": { "detected": true, "severe": true, "notAccidentButton": false, "firstSteps": ["PHONE", "CALM", "HAZARD"], "recordSaved": true },
+      "basis": "DRV-01 과 같은 충돌을 앱 시작 약 6초 뒤에. 명세 DET-02·DET-04: 저장 대기 중 에어백 신호가 오면 앱을 켠 뒤 지난 시간과 관계없이 심각도를 올린다. 수정본은 이번 실행에서 사고를 감지한 뒤의 에어백은 언제든 받는다(대기 중이면 승격). 공개본은 '최근 사고 60초 억제'가 방금 충격으로 잡은 사고까지 세어 승격이 막혔다"
+    }
+  ]
+}

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>괜차나 감지 흐름 워크스루</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Asta+Sans:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  /* 한 단의 읽기 칸(860px) + 그림·표만 1080px 까지. 무채색 바탕에 의미 있는 곳에만 빨강(앱의 증언색) */
+  --bg: #F3F4F6;
+  --surface: #FFFFFF;
+  --ink: #16181C;
+  --muted: #5B606A;
+  --line: rgba(22, 24, 28, 0.12);
+  --code-bg: #EEF0F3;
+  --red: #C42219;
+  --red-soft: rgba(196, 34, 25, 0.08);
+  --ok: #2D6A4A;
+  --ok-soft: rgba(45, 106, 74, 0.10);
+  --warn: #8A5F00;
+  --warn-soft: rgba(138, 95, 0, 0.10);
+  --display: 'Asta Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --body: 'Asta Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121317; --surface: #1B1D22; --ink: #ECEDEF; --muted: #A2A7AF; --line: rgba(255,255,255,0.12); --code-bg: #24272D;
+    --red: #F2564A; --red-soft: rgba(242,86,74,0.12); --ok: #71C394; --ok-soft: rgba(113,195,148,0.12); --warn: #E2B44A; --warn-soft: rgba(226,180,74,0.12);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121317; --surface: #1B1D22; --ink: #ECEDEF; --muted: #A2A7AF; --line: rgba(255,255,255,0.12); --code-bg: #24272D;
+  --red: #F2564A; --red-soft: rgba(242,86,74,0.12); --ok: #71C394; --ok-soft: rgba(113,195,148,0.12); --warn: #E2B44A; --warn-soft: rgba(226,180,74,0.12);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.65 var(--body); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+main { max-width: 1080px; margin: 0 auto; padding: 40px max(16px, 3vw) 80px; display: flex; flex-direction: column; gap: 44px; }
+.col { max-width: 860px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: 34px; line-height: 1.25; font-weight: 800; letter-spacing: -0.5px; }
+h2 { font-size: 23px; line-height: 1.35; font-weight: 800; }
+h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
+p { margin: 0; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--code-bg); border-radius: 5px; padding: 1px 5px; }
+section { display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
+.lead { color: var(--muted); font-size: 17px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 14px; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+.toc a { font-size: 14px; text-decoration: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; }
+.toc a:hover { border-color: var(--muted); }
+.summary { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--ink); border-radius: 10px; padding: 18px 22px; display: flex; flex-direction: column; gap: 8px; }
+.summary ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+figure .scroll { overflow-x: auto; }
+figure svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); }
+figcaption { color: var(--muted); font-size: 14px; max-width: 860px; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-weight: 700; color: var(--muted); font-size: 13px; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.n { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.st { display: inline-block; font-size: 12.5px; font-weight: 700; border-radius: 999px; padding: 1px 9px; white-space: nowrap; }
+.st.ok { background: var(--ok-soft); color: var(--ok); }
+.st.bad { background: var(--red-soft); color: var(--red); }
+.st.sus { background: var(--warn-soft); color: var(--warn); }
+.st.gap { border: 1px solid var(--line); color: var(--muted); }
+pre { margin: 0; background: var(--code-bg); border-radius: 10px; padding: 12px 0; overflow-x: auto; font: 13px/1.6 var(--mono); }
+pre .l { display: block; padding: 0 16px 0 0; white-space: pre; }
+pre .l::before { content: attr(data-n); display: inline-block; width: 46px; padding-right: 14px; text-align: right; color: var(--muted); opacity: 0.7; }
+pre .l.hl { background: var(--red-soft); box-shadow: inset 3px 0 0 var(--red); }
+pre .l.fx { background: var(--ok-soft); box-shadow: inset 3px 0 0 var(--ok); }
+.code-h { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; color: var(--muted); flex-wrap: wrap; }
+.code-h b { color: var(--ink); font-family: var(--mono); font-weight: 500; }
+.findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; border-top: 4px solid var(--line); }
+.card.bad { border-top-color: var(--red); }
+.card.sus { border-top-color: var(--warn); }
+.card.gap { border-top-color: var(--muted); }
+.card.ok { border-top-color: var(--ok); }
+.card .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card .id { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.card p { font-size: 14.5px; }
+.card .ev { font-size: 13.5px; color: var(--muted); }
+ol.q { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+ol.q li::marker { font-weight: 700; }
+ol.q .why { display: block; color: var(--muted); font-size: 14.5px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.note { font-size: 14.5px; color: var(--muted); }
+.kbd { font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; background: var(--surface); }
+@media (max-width: 480px) { h1 { font-size: 27px; } main { gap: 34px; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main>
+
+<header class="col" style="display:flex;flex-direction:column;gap:12px">
+  <div class="meta"><span>워크스루 1 / 6</span><span>앱 코드 수정 브랜치 <code>qa/tester-and-fixes</code> (공개본 <code>5ffe61e</code> 기준)</span><span>웹 시험장 <code>공개본 / 수정본</code> 전환</span><span>2026-11-15</span></div>
+  <h1>감지 흐름: 신호에서 저장된 기록까지</h1>
+  <p class="lead">How a crash becomes an incident, a saved 40-second record and a fingerprint. Read sections 2 to 5, then we go through the questions in section 9 together. When something looks wrong, name the section and the line.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#summary">요약</a><a href="#scope">1 Scope</a><a href="#paths">2 Detection paths</a><a href="#timeline">3 One incident over time</a><a href="#code">4 Key code</a>
+    <a href="#rules">5 Rules</a><a href="#findings">6 Findings</a><a href="#port">7 Web port</a><a href="#coverage">8 Coverage</a><a href="#questions">9 Questions</a><a href="#next">10 Next</a>
+  </nav>
+</header>
+
+<section id="summary" class="col">
+  <div class="summary">
+    <h2>요약</h2>
+    <ul>
+      <li>이 부분은 차 신호를 받아 사고를 잡고(경로 4가지), 사고를 만들고, 10초 뒤 앞 30초와 뒤 10초를 저장해 SHA-256 지문을 남겨요. 핵심은 <code>Crash.kt</code>의 <code>ImpactSensor</code>와 <code>CrashWatcher</code>, 그리고 사고 폴더 쓰기를 맡는 <code>Consent.kt</code>의 <code>Records</code>예요.</li>
+      <li><b>확인하고 고친 문제 (F-01):</b> 앱을 켠 지 60초 안에는 충격으로 먼저 잡힌 사고 뒤에 온 에어백 신호가 버려졌어요. 이제는 이번 실행에서 사고를 한 번이라도 감지했으면 그 뒤의 에어백은 언제든 받아요(407행 <code>seenThisRun</code>). 저장 대기 중이면 그 사고를 큰 사고로 올리고, 대기가 끝났거나 "사고가 아니에요"로 닫은 뒤면 새 큰 사고로 기록해요. 60초 억제는 이번 실행에서 아직 사고가 없을 때만 남아요(앱이 다시 켜진 뒤 이미 터져 있던 에어백 값이 늦게 온 경우). 명세 DET-04대로예요.</li>
+      <li><b>지운 폴더를 다시 만드는 문제도 고침 (TC-04·S-01·S-02):</b> 동의를 철회해 사고 폴더를 지운 뒤, 늦게 끝나는 저장 작업이 폴더를 다시 만들 수 있었어요. 이제 사고 폴더 쓰기는 모두 삭제와 같은 잠금(<code>Records.write</code>)을 거치고, 폴더는 지금 사고의 폴더일 때만 만들어요. 지운 사고에는 아무것도 쓰지 않아요. 사고를 감지하는 도중에 삭제가 끝나면 그 사고를 화면에 띄우지 않아요(477행).</li>
+      <li><b>사고 종류 기록 순서도 정리:</b> 운전자가 고른 종류는 나중에 들어온 추정이 덮지 않고(<code>chooseKind()</code> 102행), <code>kind.txt</code>에는 사고 폴더마다 마지막으로 고른 값만 남아요(<code>kindSeq</code>).</li>
+      <li><b>시험:</b> 실제 Kotlin 코드를 JVM에서 돌리는 qa/jvm 시험대에서 공개본 <code>5ffe61e</code>는 TC-04·DRV-12·DRV-12b("사고가 아니에요" 바로 뒤 에어백)·DRV-12c(충격 11.5초 뒤, 저장 대기가 끝난 뒤 에어백)가 모두 실패하고, 수정본은 모두 통과해요. 웹 시험장(Node·실제 브라우저)도 TC-04·DRV-12에서 같은 결과예요. 사진 복사·충돌 전 저장·감지 중 삭제는 코드 리뷰로만 확인했어요. Android 빌드·에뮬레이터 확인은 아직이에요.</li>
+      <li><b>빈틈:</b> 속도 급감 경로가 먼저 잡는 시험이 없어요. 재시작 직후 이미 터져 있던 에어백(60초 억제가 남은 유일한 경우)을 시험하는 케이스도 없어요. 스레드 경합은 웹 모델로 재현할 수 없고, qa/jvm도 종류 기록(TC-04) 하나만 실제 스레드를 멈춰 봐요. 센서 축 부호는 웹이 앱 규칙에 맞춰 넣기 때문에 틀려도 못 잡아요.</li>
+      <li>같이 볼 질문 8개는 9장에 있어요. 그중 2개(에어백 규칙, 폴더 쓰기 확인)는 정했어요.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="scope" class="col">
+  <h2>1 Scope</h2>
+  <p>What this walkthrough covers, in the app (Kotlin) and in its web copy. Kotlin line numbers are on branch <code>qa/tester-and-fixes</code>. The web copy runs either the public code or the fixed code (its 앱 코드 switch).</p>
+  <div class="tbl"><table>
+    <tr><th>Part</th><th>App (Kotlin)</th><th>Web copy (JS)</th></tr>
+    <tr><td>Crash state shared by screens</td><td><code>Crash.kt</code> <code>CrashFlow</code> 76–144</td><td><code>src/20-app-runtime.js</code> <code>CrashFlowState</code> 258–284</td></tr>
+    <tr><td>Accelerometer and gyro</td><td><code>Crash.kt</code> <code>ImpactSensor</code> 283–367</td><td><code>ImpactSensor</code> 216–255</td></tr>
+    <tr><td>10 Hz recorder, detection, save</td><td><code>Crash.kt</code> <code>CrashWatcher</code> 376–666</td><td><code>CrashWatcher</code> 402–537</td></tr>
+    <tr><td>Folder writes and deletion (lock)</td><td><code>Consent.kt</code> <code>Records</code> 17–28, <code>deleteRecords</code> 83–95</td><td><code>Records</code> 288–297 (수정본)</td></tr>
+    <tr><td>Starts the watcher, opens the screen</td><td><code>CarService.kt</code> 30–70</td><td><code>GwenApp.startService</code> 620–635</td></tr>
+    <tr><td>Car signals and road limit</td><td><code>Sources.kt</code> <code>CarState</code> 33–57</td><td><code>CarState</code> 207–212; inputs come from <code>src/30-sim.js</code> <code>feedApp</code></td></tr>
+    <tr><td>Helpers</td><td><code>Recorder.kt</code> <code>suddenDrop</code> 115, <code>impactFromDeg</code> 123; <code>Guide.kt</code> <code>inferKind</code> 118</td><td><code>src/10-app-core.js</code> 68–70, 209</td></tr>
+  </table></div>
+</section>
+
+<section id="paths">
+  <div class="col" style="display:flex;flex-direction:column;gap:10px">
+    <h2>2 Four ways a crash is detected</h2>
+    <p>Every path ends in the same <code>trigger()</code>. If an incident is waiting to be saved and is still open, <code>trigger()</code> only raises it to severe (and only when the new signal is the airbag). Otherwise, including after "사고가 아니에요", it starts a new incident.</p>
+  </div>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 372" role="img" aria-label="Accelerometer and car signals feed four detection paths, A impact, B airbag, C sudden speed drop and D manual or practice, which all call trigger. Once this run has detected an incident, an airbag signal is always accepted: it upgrades a waiting incident to severe or records a new severe incident (DRV-12, 12b, 12c).">
+      <defs>
+        <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+      </defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="16" y="40" width="190" height="64" rx="10"/>
+        <rect x="16" y="150" width="190" height="64" rx="10"/>
+        <rect x="16" y="282" width="190" height="64" rx="10"/>
+        <rect x="250" y="40" width="230" height="64" rx="10"/>
+        <rect x="250" y="150" width="230" height="64" rx="10"/>
+        <rect x="530" y="22" width="250" height="58" rx="10"/>
+        <rect x="530" y="96" width="250" height="58" rx="10"/>
+        <rect x="530" y="170" width="250" height="58" rx="10"/>
+        <rect x="530" y="286" width="250" height="58" rx="10"/>
+        <rect x="830" y="112" width="156" height="150" rx="12" stroke-width="2"/>
+      </g>
+      <g fill="currentColor" font-family="Asta Sans, Malgun Gothic, sans-serif" font-size="13">
+        <text x="30" y="67" font-weight="700">가속도 센서 50 Hz</text><text x="30" y="88" opacity=".7" font-size="12">x·y·z m/s² (중력 포함)</text>
+        <text x="30" y="177" font-weight="700">차 신호 (VHAL)</text><text x="30" y="198" opacity=".7" font-size="12">속도·기어·에어백 약 20 Hz</text>
+        <text x="30" y="309" font-weight="700">운전자 · 디버그</text><text x="30" y="330" opacity=".7" font-size="12">기록 버튼 · 연습 사고</text>
+        <text x="264" y="67" font-weight="700">ImpactSensor</text><text x="264" y="88" opacity=".7" font-size="12">g = |a − 중력| ÷ 9.80665, 최근 3초</text>
+        <text x="264" y="177" font-weight="700">기록 루프 10 Hz</text><text x="264" y="198" opacity=".7" font-size="12">CarState → 최근 60초 버퍼</text>
+        <text x="544" y="46" font-weight="700">A 충격</text><text x="544" y="67" opacity=".7" font-size="12">샘플마다 g ≥ 2.5 이면 바로</text>
+        <text x="544" y="114" font-weight="700">B 에어백 꺼짐 → 켜짐</text><text x="544" y="131" opacity=".7" font-size="12">이번 실행에서 사고를 본 뒤면 언제든</text><text x="544" y="147" opacity=".7" font-size="12">큰 사고로 (DRV-12·12b·12c)</text>
+        <text x="544" y="194" font-weight="700">C 속도 급감</text><text x="544" y="215" opacity=".7" font-size="12">0.3초에 15 km/h↓ + 1초 최대 ≥ 1.5 g</text>
+        <text x="544" y="310" font-weight="700">D 직접 · 연습</text><text x="544" y="331" opacity=".7" font-size="12">manual · practice 표시를 남김</text>
+        <text x="846" y="140" font-weight="800" font-size="14">trigger()</text>
+        <text x="846" y="166" font-size="12">대기 중 사고 있음</text>
+        <text x="846" y="184" font-size="12" opacity=".75">→ 에어백이면 심각도↑</text>
+        <text x="846" y="202" font-size="12" opacity=".75">→ 아니면 무시</text>
+        <text x="846" y="228" font-size="12">없음 → 새 사고</text>
+        <text x="846" y="246" font-size="12" opacity=".75">(폴더·화면·휴대폰)</text>
+        <text x="474" y="131" font-size="11" opacity=".7" text-anchor="end">C 확인용: 최근 1초 최대 g</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar1)">
+        <line x1="206" y1="72" x2="248" y2="72"/>
+        <line x1="206" y1="182" x2="248" y2="182"/>
+        <path d="M480 64 C505 64 505 51 528 51"/>
+        <path d="M480 176 C505 176 505 125 528 125"/>
+        <path d="M480 190 C505 190 505 199 528 199"/>
+        <path d="M480 92 C512 92 500 186 528 186" stroke-dasharray="4 4"/>
+        <line x1="206" y1="314" x2="528" y2="314"/>
+        <path d="M780 51 C806 51 806 140 828 140"/>
+        <path d="M780 125 C806 125 806 166 828 166"/>
+        <path d="M780 199 C806 199 806 202 828 202"/>
+        <path d="M780 314 C806 314 806 240 828 240"/>
+      </g>
+    </svg>
+    </div>
+    <figcaption>Path A runs on the sensor thread for every 20 ms sample, so one crash calls <code>trigger()</code> several times; the extra calls are ignored. Paths B and C run in the 10 Hz recorder loop. The dashed line is C's extra check: the sensor must also have felt at least 1.5 g in the last second (skipped when the car has no accelerometer). Path B's note is the F-01 fix: once this run has detected an incident, an airbag edge after the first 3 s always reaches <code>trigger()</code>, which makes a waiting incident severe or, after the save window or "사고가 아니에요", records a new severe incident.</figcaption>
+  </figure>
+  <div class="tbl col" style="max-width:none"><table>
+    <tr><th>Path</th><th>Fires when</th><th>Suppressed when</th><th>Result</th><th>Line</th></tr>
+    <tr><td>A Impact</td><td>Corrected magnitude ≥ 2.5 g on any single sample</td><td>An incident is waiting to be saved (then ignored)</td><td>reason <code>충격 감지 (x.xg)</code>, not severe</td><td class="n">Crash.kt 351, 378</td></tr>
+    <tr><td>B Airbag</td><td>Airbag signal goes false → true after the first 3 s, and this run has already detected an incident (<code>seenThisRun</code>), or app up &gt; 60 s, or the newest saved incident is &gt; 60 s old</td><td>App up ≤ 3 s; or, only before the first incident of this run, app up ≤ 60 s <i>and</i> the newest saved incident ≤ 60 s old (an airbag that was already on, arriving late after an app restart)</td><td>Upgrades a waiting incident to severe; otherwise, also after the save window or "사고가 아니에요", a new incident, reason <code>에어백 전개</code>, severe</td><td class="n">Crash.kt 407</td></tr>
+    <tr><td>C Sudden drop</td><td><code>suddenDrop(speed 0.3 s ago − now, heldSec, 15)</code> and peak ≥ 1.5 g in the last 1 s</td><td>Same as A</td><td>reason <code>속도 급감 (a→b km/h)</code>, not severe</td><td class="n">Crash.kt 410–411</td></tr>
+    <tr><td>D Manual / practice</td><td>Home button "차가 못 본 사고 기록하기"; debug test crash</td><td>Same as A</td><td>Writes a <code>manual</code> or <code>practice</code> marker in the folder</td><td class="n">CarService.kt 65, 69</td></tr>
+  </table></div>
+</section>
+
+<section id="timeline">
+  <div class="col" style="display:flex;flex-direction:column;gap:10px">
+    <h2>3 One incident over time</h2>
+    <p>Five threads touch the same incident within about 12 seconds. The marked writes are where a late job used to recreate a folder that the driver had just deleted by withdrawing consent. They now all go through <code>Records.write</code>, which shares one lock with the deletion.</p>
+  </div>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 392" role="img" aria-label="Timeline of one incident: trigger at 0 seconds, pre-save right after, a one-second re-check that may start the kind-write job, the finish at 10 seconds that saves the full record, then the report job. The kind-write job, the pre-save job and the report job's photo copy all write through Records.write, so none of them can recreate a deleted folder.">
+      <g fill="currentColor" font-family="Asta Sans, Malgun Gothic, sans-serif" font-size="12.5">
+        <text x="16" y="56" font-weight="700">센서 스레드</text>
+        <text x="16" y="108" font-weight="700">pre-save</text>
+        <text x="16" y="160" font-weight="700">1초 뒤 다시 보기</text>
+        <text x="16" y="212" font-weight="700">kind-write</text>
+        <text x="16" y="264" font-weight="700">기록 루프</text>
+        <text x="16" y="316" font-weight="700">report</text>
+      </g>
+      <g stroke="currentColor" stroke-opacity=".15"><line x1="190" y1="30" x2="190" y2="350"/><line x1="248" y1="30" x2="248" y2="350"/><line x1="770" y1="30" x2="770" y2="350"/></g>
+      <g fill="currentColor"><circle cx="190" cy="52" r="6"/><circle cx="248" cy="156" r="6"/><circle cx="770" cy="260" r="6"/></g>
+      <rect x="190" y="96" width="26" height="16" rx="3" fill="currentColor"/>
+      <rect x="250" y="200" width="20" height="16" rx="3" fill="currentColor"/>
+      <rect x="770" y="300" width="30" height="16" rx="3" fill="currentColor"/>
+      <line x1="800" y1="308" x2="900" y2="308" stroke="currentColor" stroke-width="1.3" stroke-dasharray="4 4"/>
+      <rect x="806" y="302" width="10" height="12" rx="2" fill="currentColor"/>
+      <line x1="196" y1="260" x2="764" y2="260" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 5"/>
+      <g fill="currentColor" font-family="Asta Sans, Malgun Gothic, sans-serif" font-size="12.5">
+        <text x="202" y="56">g ≥ 2.5 → trigger(): 새 사고, CrashFlow 초기화, 사고 화면, 휴대폰에 알림</text>
+        <text x="224" y="108">log.json [t−30, t] · log.sha256 · impact.json</text>
+        <text x="500" y="108" opacity=".7">Records.write 를 거쳐 씀 (S-02 고침)</text>
+        <text x="260" y="160">충격 방향 다시 보기 [t−1.5, t+1] → 대상 추정 → chooseKind()</text>
+        <text x="278" y="212">kind.txt 저장: Records.write 를 거쳐, 지운 폴더는 안 만듦 (TC-04)</text>
+        <text x="782" y="256">finish(): CrashFlow.dir 이</text>
+        <text x="782" y="273">그대로일 때만 저장</text>
+        <text x="782" y="290" opacity=".7">log.json [t−30, t+10]</text>
+        <text x="760" y="312" text-anchor="end">사실 목록 → report.txt → 화면·휴대폰</text>
+        <text x="760" y="330" text-anchor="end" opacity=".7">사진 copyTo 도 Records.write 를 거쳐 씀 (S-01 고침)</text>
+        <text x="908" y="312" opacity=".7">최종 report.txt</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.3"><line x1="190" y1="352" x2="920" y2="352"/><line x1="190" y1="347" x2="190" y2="357"/><line x1="248" y1="347" x2="248" y2="357"/><line x1="770" y1="347" x2="770" y2="357"/><line x1="886" y1="347" x2="886" y2="357"/></g>
+      <g fill="currentColor" font-family="Asta Sans, Malgun Gothic, sans-serif" font-size="12" text-anchor="middle">
+        <text x="190" y="376">0 (충돌)</text><text x="248" y="376">+1초</text><text x="770" y="376">+10초</text><text x="886" y="376">+12초</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>The recorder loop checks the waiting incident every 100 ms and calls <code>finish()</code> once 10 s have passed. Every write in this path (pre-save, kind-write, <code>finish()</code>, both <code>report.txt</code> writes, the photo copy, <code>vision_detect.json</code> and the camera end/hash files) runs inside <code>Records.write</code>, under the same lock as <code>Consent.deleteRecords</code>. It writes only with DRIVE consent, and creates a missing folder only when it is <code>CrashFlow.dir</code>, the current incident. The deletion clears <code>CrashFlow.dir</code> under that lock, so a late job writes nothing.</figcaption>
+  </figure>
+</section>
+
+<section id="code" class="col">
+  <h2>4 Key code</h2>
+  <p class="note">Excerpts are from branch <code>qa/tester-and-fixes</code>. Green marks the lines that carry the fix.</p>
+  <div class="code-h"><b>Crash.kt 384–385 and 401–413 · recorder loop</b><span>The run flag, paths B and C, then the 10-second save</span></div>
+  <pre><code><span class="l" data-n="384">    /** 이번 실행(앱 프로세스)에서 사고를 한 번이라도 감지했는지. 에어백 억제(재시작 직후 늦게 온 값)는 이것이 false 일 때만 */</span><span class="l fx" data-n="385">    @Volatile private var seenThisRun = false</span><span class="l" data-n="…">        …</span><span class="l" data-n="401">                when {</span><span class="l" data-n="402">                    // 에어백이 새로 켜지면 큰 사고. 시작 직후 3초는 무시: 앱이 다시 켜지면 이미 터져 있던 에어백(게임 차 그대로)이 새 사고처럼 보임.</span><span class="l" data-n="403">                    // 이번 실행에서 이미 사고를 감지했다면 그 뒤의 에어백은 앱이 지켜보는 동안 켜진 것: 언제든 받는다.</span><span class="l" data-n="404">                    // 저장 대기 중이면 그 사고를 큰 사고로 올리고, 대기가 끝났거나 "사고가 아니에요"로 닫은 뒤면 새 큰 사고로 기록한다.</span><span class="l" data-n="405">                    // 이번 실행에서 아직 사고가 없을 때만: 켜진 지 60초 안에 최근(60초 안) 기록한 사고가 있으면 같은 사고로 본다</span><span class="l" data-n="406">                    // (앱이 죽었다 살아나, 이미 터져 있던 에어백 값이 3초 넘어 늦게 온 경우). 켜진 지 60초가 지나면 억제하지 않는다.</span><span class="l fx" data-n="407">                    s.airbag &amp;&amp; !prev.airbag &amp;&amp; s.t - started &gt; 3 &amp;&amp; (seenThisRun || s.t - started &gt; REPEAT_SEC || s.t - lastIncidentT() &gt; REPEAT_SEC) -&gt; trigger("에어백 전개", severe = true)</span><span class="l" data-n="408">                    // 속도 급감만으로는 사고로 안 봄(순간이동·센서 오류도 급감처럼 보임) → 가속도 센서도 1.5g 넘게 느꼈을 때만.</span><span class="l" data-n="409">                    // 센서가 없는 차면 급감만으로 (없으면 에어백 사고만 잡히게 됨)</span><span class="l" data-n="410">                    before != null &amp;&amp; suddenDrop(before.speedKph - s.speedKph, heldSec, SUDDEN_DROP_KPH) &amp;&amp; (!impact.available || impact.peak(s.t - 1.0, s.t).first &gt;= 1.5) -&gt;</span><span class="l" data-n="411">                        trigger("속도 급감 (%.0f→%.0f km/h)".format(before.speedKph, s.speedKph), severe = false)</span><span class="l" data-n="412">                }</span><span class="l" data-n="413">                pendingSince?.let { if (s.t - it &gt;= AFTER_SEC) runCatching { finish(it) }.onFailure { e -&gt; Log.w("AskTheCar", "사고 기록 저장 실패", e); CrashFlow.saveFailed = it } }</span></code></pre>
+  <p class="note">Line 407: the airbag condition now starts with <code>seenThisRun ||</code>. The flag (385) is false when the watcher starts, and <code>trigger()</code> sets it on every new incident (434). Once this run has detected anything, an airbag rising edge more than 3 s after start always reaches <code>trigger()</code>: a waiting incident becomes severe, and after the save window or "사고가 아니에요" a new severe incident is recorded. The 60 s rule (<code>s.t - started &gt; REPEAT_SEC || s.t - lastIncidentT() &gt; REPEAT_SEC</code>) now acts only before the first incident of a run, so an app that restarts within a minute of a saved incident still does not treat the old, already-deployed airbag value as a new crash. Before the fix, <code>lastIncidentT()</code> was the incident the impact path had just created, so in the first 60 s the airbag never reached <code>trigger()</code> (F-01).</p>
+
+  <div class="code-h"><b>Crash.kt 424–434 · trigger()</b><span>The only place that upgrades severity</span></div>
+  <pre><code><span class="l" data-n="424">    fun trigger(reason: String, severe: Boolean, practice: Boolean = false, manual: Boolean = false) {</span><span class="l" data-n="425">        // incident 가 비었으면 "사고 아니에요"로 닫힌 뒤: 10초 대기 중이어도 새 사고로 받는다</span><span class="l" data-n="426">        if (pendingSince != null &amp;&amp; CrashFlow.incident != null) {</span><span class="l" data-n="427">            // 충격 감지 후 에어백까지 터지면 큰 사고로 올린다. 대처 단계가 달라지므로 휴대폰에도 알림</span><span class="l" data-n="428">            if (severe) { CrashFlow.setIncident { cur -&gt; if (cur != null &amp;&amp; !cur.severe) cur.copy(severe = true, reason = reason) else cur }; CarSync.publish() }</span><span class="l" data-n="429">            return</span><span class="l" data-n="430">        }</span><span class="l" data-n="431">        val t = System.currentTimeMillis() / 1000.0</span><span class="l" data-n="432">        pendingSince = t</span><span class="l" data-n="433">        latestT = t</span><span class="l fx" data-n="434">        seenThisRun = true</span></code></pre>
+  <p class="note">Line 426: an incident counts as waiting only while it is still open. "사고가 아니에요" clears <code>CrashFlow.incident</code>, so the next signal starts a new incident; for the airbag that is a new severe incident (DRV-12b). Line 434 sets the flag that line 407 reads.</p>
+
+  <div class="code-h"><b>Crash.kt 440–451 and 473–478 · pre-save thread and the deletion check</b><span>Starts right after a new incident</span></div>
+  <pre><code><span class="l fx" data-n="440">        val dir = dirFor(t)</span><span class="l fx" data-n="441">        CrashFlow.dir = dir // 저장 스레드보다 먼저: 폴더는 "지금 사고 폴더"일 때만 만든다(Records.write)</span><span class="l" data-n="442">        thread(name = "pre-save", isDaemon = true) {</span><span class="l" data-n="443">            runCatching {</span><span class="l fx" data-n="444">                Records.write(dir) {</span><span class="l" data-n="445">                    if (practice) File(dir, "practice").createNewFile()</span><span class="l" data-n="446">                    if (manual) File(dir, MANUAL).createNewFile()</span><span class="l" data-n="…">        …</span><span class="l fx" data-n="451">                }</span><span class="l" data-n="…">        …</span><span class="l" data-n="473">        CrashFlow.setIncident { incident }</span><span class="l" data-n="474">        CrashFlow.record = null</span><span class="l" data-n="475">        CrashFlow.status = "사고 감지: $reason"</span><span class="l" data-n="476">        // 감지하는 사이 동의 철회·"모두 지우기"가 끝났으면(CrashFlow.dir 가 비워짐) 사고를 다시 띄우지 않는다</span><span class="l fx" data-n="477">        if (CrashFlow.dir == null) { pendingSince = null; CrashFlow.setIncident { cur -&gt; if (cur?.t == t) null else cur }; return }</span><span class="l" data-n="478">        onIncident(incident)</span></code></pre>
+  <p class="note">Line 441: <code>CrashFlow.dir</code> is now set before the thread starts (it used to be set later in <code>trigger()</code>), so <code>Records.write</code> knows this is the current incident and may create its folder. If the records are deleted first, the thread writes nothing. Line 477: if a deletion finished while <code>trigger()</code> was still setting the incident up, <code>CrashFlow.dir</code> is now empty. <code>trigger()</code> then clears <code>pendingSince</code>, removes the incident it has just made and returns before <code>onIncident()</code>, so no crash screen opens for a deleted incident and nothing is saved 10 s later. It checks for <code>null</code> rather than for a different folder, so only a deletion undoes the incident (the other writer of <code>CrashFlow.dir</code> is <code>reopen()</code>, 134).</p>
+
+  <div class="code-h"><b>Crash.kt 97–115 · chooseKind()</b><span>The driver's choice wins, and kind.txt keeps the last one</span></div>
+  <pre><code><span class="l" data-n="97">    /** 운전자가 직접 골랐으면 추정이 나중에 바뀌어도 덮어쓰지 않음 */</span><span class="l" data-n="98">    @Volatile var kindChosen = false</span><span class="l" data-n="99">    /** kind.txt 쓰기 순서: 스레드가 늦게 끝나도 마지막으로 고른 값만 남는다 */</span><span class="l" data-n="100">    private val kindSeq = java.util.concurrent.ConcurrentHashMap&lt;File, Int&gt;()</span><span class="l fx" data-n="101">    @Synchronized fun chooseKind(k: CrashKind, byDriver: Boolean = true) {</span><span class="l fx" data-n="102">        if (!byDriver &amp;&amp; kindChosen) return // 운전자가 이미 골랐으면 추정으로 덮어쓰지 않는다</span><span class="l" data-n="103">        if (byDriver) kindChosen = true</span><span class="l" data-n="104">        kind = k</span><span class="l" data-n="105">        CarSync.publish() // 휴대폰 앱도 같은 종류·단계로</span><span class="l" data-n="106">        val text = k.name + if (kindChosen) "" else " guess"</span><span class="l" data-n="107">        // 동의 철회·"모두 지우기"로 지운 사고 폴더를 다시 만들지 않는다. 지워졌으면 그냥 끝내고, 쓸 때는 삭제와 같은 잠금 안에서 다시 확인(Records)</span><span class="l" data-n="108">        dir?.let { d -&gt;</span><span class="l fx" data-n="109">            val seq = kindSeq.merge(d, 1) { a, b -&gt; a + b } // 사고 폴더마다 순서를 센다</span><span class="l" data-n="110">            thread(isDaemon = true) { runCatching {</span><span class="l fx" data-n="111">                if (!d.exists() &amp;&amp; CrashFlow.dir != d) return@runCatching</span><span class="l fx" data-n="112">                Records.write(d) { if (seq == kindSeq[d]) File(d, "kind.txt").writeText(text) }</span><span class="l" data-n="113">            } }</span><span class="l" data-n="114">        }</span><span class="l" data-n="115">    }</span></code></pre>
+  <p class="note"><code>chooseKind()</code> is now <code>@Synchronized</code> (101) and ignores a guess once the driver has chosen (102), so an estimate that arrives late, from the 1 s re-check or the photo analysis, cannot replace the driver's choice even if it passed <code>suggest()</code>'s check a moment earlier. Each call takes a sequence number, counted per incident folder (109), and the write thread writes <code>kind.txt</code> only if no newer choice has been made for that folder since (112), so the file keeps the last choice when an older write thread runs late, and a choice for a newer incident does not cancel an older incident's write. Lines 111–112 are the TC-04 fix: a write for a folder that is gone and is not the current incident stops before it touches the disk (111), and any other write checks again under the deletion lock (112).</p>
+
+  <div class="code-h"><b>Crash.kt 515–532 and 559–565 · finish() and the photo copy</b><span>Both write only inside Records.write</span></div>
+  <pre><code><span class="l" data-n="515">    private fun finish(t: Double) {</span><span class="l" data-n="…">        …</span><span class="l" data-n="519">        val dir = dirFor(t)</span><span class="l" data-n="520">        if (CrashFlow.dir != dir) return // 기다리는 사이 "모두 지우기"·동의 철회로 지워진 사고: 다시 저장하지 않는다</span><span class="l" data-n="521">        val (peakG, peakDeg) = peakAtCrash</span><span class="l" data-n="522">        val impactDeg = peakDeg.takeIf { peakG &gt;= 1.0 }</span><span class="l" data-n="523">        // 위 확인과 쓰기 사이에도 지워질 수 있어, 삭제와 같은 잠금 안에서 다시 확인하고 쓴다</span><span class="l fx" data-n="524">        Records.write(dir) {</span><span class="l" data-n="525">            val logFile = File(dir, "log.json").apply { writeAtomic(toJson(log)) }</span><span class="l" data-n="526">            File(dir, "log.sha256").writeText(sha256(logFile)) // 잠금: 나중에 바뀌었는지 확인용</span><span class="l" data-n="527">            saveImpact(dir, t, peakG, impactDeg)</span><span class="l fx" data-n="528">        } ?: run {</span><span class="l" data-n="529">            // 지워졌거나 동의가 꺼져서 안 쓴 것이면 조용히 끝낸다. 지금 사고인데 폴더를 못 만든 것이면 저장 실패로 알린다(saveFailed)</span><span class="l fx" data-n="530">            if (CrashFlow.dir == dir &amp;&amp; Consent.allowed(Consent.Item.DRIVE)) throw java.io.IOException("사고 기록 폴더를 만들 수 없음: ${dir.name}")</span><span class="l" data-n="531">            return</span><span class="l" data-n="532">        }</span><span class="l" data-n="…">        …</span><span class="l" data-n="559">            val photo = File(dir, "camera.jpg")</span><span class="l" data-n="560">            // 수정 시각 유지: PDF 가 이 값을 촬영 시각으로 쓴다(복사하면 약 10초 늦어짐)</span><span class="l" data-n="561">            // copyTo 는 없는 폴더를 만들어 버리므로 삭제와 같은 잠금 안에서만 복사한다. 지워진 사고면 임시 사진만 지운다</span><span class="l fx" data-n="562">            CrashFlow.snapshot?.takeIf { it.exists() }?.let { shot -&gt;</span><span class="l fx" data-n="563">                Records.write(dir) { shot.copyTo(photo, overwrite = true).setLastModified(shot.lastModified()); File(dir, "camera.sha256").writeText(sha256(photo)) }</span><span class="l fx" data-n="564">                shot.delete()</span><span class="l" data-n="565">            }</span></code></pre>
+  <p class="note">Line 520 still skips an incident that was deleted while it waited. Lines 524–532 check again under the lock, because a deletion can land between that check and the write; when nothing was written, <code>finish()</code> stops before the report. The report thread's other writes go through <code>Records.write</code> the same way: <code>report.txt</code> (543 and 582), the camera end time and <code>cameras.sha256</code> (551–554), and <code>vision_detect.json</code> (570–573). The video's SHA-256 is computed first, outside the lock (550), because the file is large; only the two short file writes run under the lock. The driver's spoken statement (<code>statement.txt</code>, 202) now also goes through <code>Records.write</code> inside <code>runCatching</code> and reports "진술을 저장했어요" only when it was written, and if <code>Records.write</code> refuses the current incident's own folder while DRIVE consent is on, which means the folder could not be created, <code>finish()</code> throws an <code>IOException</code> (530) that the recorder loop shows as <code>saveFailed</code> (413).</p>
+  <p class="note">Checked with the real <code>kotlin-stdlib</code> 2.0.21 (a small Java program, not the app): <code>writeText</code> into a missing folder throws <code>FileNotFoundException</code> and creates nothing; <code>copyTo</code> into a missing folder creates the folder and the file. That is exactly why the photo copy (563) now runs inside <code>Records.write</code>. The cached shot is deleted either way (564). The app builds with Kotlin 2.1.21; re-check on that version in qa/jvm (실제 Kotlin 코드).</p>
+
+  <div class="code-h"><b>Consent.kt 17–28 and 85–89 · Records and deleteRecords</b><span>One lock for every folder write and for deletion</span></div>
+  <pre><code><span class="l" data-n="17">object Records {</span><span class="l" data-n="18">    private val lock = Any()</span><span class="l" data-n="19"></span><span class="l" data-n="20">    /** 쓸 수 있으면 block 결과, 지워졌거나 동의가 꺼져 있으면 null(아무것도 쓰지 않음) */</span><span class="l" data-n="21">    fun &lt;T&gt; write(dir: File, block: () -&gt; T): T? = synchronized(lock) {</span><span class="l fx" data-n="22">        if (!Consent.allowed(Consent.Item.DRIVE)) return null</span><span class="l fx" data-n="23">        if (!dir.isDirectory &amp;&amp; (CrashFlow.dir != dir || !(dir.mkdirs() || dir.isDirectory))) return null</span><span class="l" data-n="24">        block()</span><span class="l" data-n="25">    }</span><span class="l" data-n="26"></span><span class="l" data-n="27">    fun deleting(block: () -&gt; Unit) = synchronized(lock, block)</span><span class="l" data-n="28">}</span><span class="l" data-n="…">        …</span><span class="l fx" data-n="85">        Records.deleting {</span><span class="l fx" data-n="86">            CrashFlow.dir = null // 지금 사고 폴더를 비운다: 이후 쓰기는 이 폴더를 다시 만들 수 없다</span><span class="l" data-n="87">            File(ctx.filesDir, "crashes").deleteRecursively()</span><span class="l" data-n="88">            ctx.cacheDir.listFiles()?.filter { it.name.startsWith("camera_") }?.forEach { it.delete() }</span><span class="l" data-n="89">        }</span></code></pre>
+  <p class="note"><code>write()</code> runs <code>block</code> under the lock and returns its result. It returns <code>null</code> and writes nothing when DRIVE consent is off, or when the folder is missing and is not <code>CrashFlow.dir</code> (the current incident). <code>deleteRecords</code> clears <code>CrashFlow.dir</code> and deletes the folders inside <code>Records.deleting { }</code>, under the same lock, so a late write either lands before the deletion or finds its incident gone and writes nothing. Only short file writes run inside the lock; relay calls, photo analysis and the video save stay outside.</p>
+</section>
+
+<section id="rules" class="col">
+  <h2>5 Rules this part must always keep</h2>
+  <p>These are the invariants I would hold the code to. The status is for the fixed branch as far as we know today; <b>fixed</b> means broken on <code>5ffe61e</code> and holding on <code>qa/tester-and-fixes</code>.</p>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>Rule</th><th>Enforced at</th><th>Evidence</th><th>Status</th></tr>
+    <tr><td class="n">R1</td><td>One crash makes one incident while it waits to be saved; repeat signals only raise severity</td><td><code>trigger()</code> 426–430</td><td>Every DRV run (several ≥ 2.5 g samples per crash)</td><td><span class="st ok">holds</span></td></tr>
+    <tr><td class="n">R2</td><td>Once a run has detected an incident, an airbag signal is never dropped: it makes the waiting incident severe or records a new severe incident</td><td>407 (<code>seenThisRun</code>, set at 434) + 428</td><td>qa/jvm DRV-12, DRV-12b, DRV-12c (app up &lt; 60 s) and web DRV-12 pass on the branch and fail on <code>5ffe61e</code>; DRV-01, DRV-10 and the qa/jvm 65 s control pass on both</td><td><span class="st ok">fixed</span></td></tr>
+    <tr><td class="n">R3</td><td>Unless deleted, every incident gets <code>[t−30, t+10]</code> saved with its SHA-256 about 10 s later</td><td><code>finish()</code></td><td>All detected DRV cases check file set and hash</td><td><span class="st ok">holds</span></td></tr>
+    <tr><td class="n">R4</td><td>After deletion or consent withdrawal, no job recreates the crash folder, and an incident that was being set up is not shown</td><td><code>Records.write</code> (Consent.kt 21–25) around every save-path write; deletion under the same lock (85–89); <code>trigger()</code> 477</td><td>TC-04 (kind-write) passes on the branch and fails on <code>5ffe61e</code>, in qa/jvm and in the web copy; S-01, S-02 and the <code>trigger()</code> check by code review plus the library check</td><td><span class="st ok">fixed</span></td></tr>
+    <tr><td class="n">R5</td><td>A late estimate never replaces the driver's own choice of what was hit, on screen or in <code>kind.txt</code></td><td><code>suggest()</code> 482–486; <code>chooseKind()</code> 101–102, and 109 + 112 for the file</td><td>Code reading only</td><td><span class="st gap">untested</span></td></tr>
+    <tr><td class="n">R6</td><td>Normal driving is not a crash (hard braking, slalom, slow bump, wall scrape)</td><td>Thresholds</td><td>DRV-06, 07, 09, 11 pass. A 40 km/h bump <i>is</i> detected by design (DRV-08)</td><td><span class="st ok">holds</span></td></tr>
+    <tr><td class="n">R7</td><td>When the car stops after a crash, the phone is told once</td><td>Recorder loop, <code>halted</code></td><td>Seen in the web runs; not asserted by a case</td><td><span class="st gap">untested</span></td></tr>
+    <tr><td class="n">R8</td><td>A failed save is shown to the driver instead of "저장 중" forever</td><td>413 <code>saveFailed</code>, also fed by <code>finish()</code> 530 when the folder cannot be made</td><td>No case injects a write failure into <code>finish()</code></td><td><span class="st gap">untested</span></td></tr>
+  </table></div>
+</section>
+
+<section id="findings">
+  <div class="col" style="display:flex;flex-direction:column;gap:10px">
+    <h2>6 Findings and gaps</h2>
+    <p>Status words: <b>fixed</b> = shown or suspected on <code>5ffe61e</code>, fixed on <code>qa/tester-and-fixes</code>; <b>gap</b> = nothing tests it.</p>
+  </div>
+  <div class="findings">
+    <article class="card ok">
+      <div class="top"><span class="id">F-01 · Crash.kt 407</span><span class="st ok">fixed</span></div>
+      <h3>After the first incident of a run, an airbag edge is never dropped</h3>
+      <p>The airbag condition starts with <code>seenThisRun ||</code>, a flag <code>trigger()</code> sets on every new incident. Once this run has detected anything, an airbag edge more than 3 s after start always reaches <code>trigger()</code>. A waiting incident becomes severe, so "사고가 아니에요" goes away and the guide starts with "차로 오는 전화를 받아 주세요" (the car's rescue-center call). After the save window, or after the driver closed the incident with "사고가 아니에요", it becomes a new severe incident. The 60 s repeat rule applies only before the first incident of a run: an airbag that was already on and arrives late after an app restart.</p>
+      <p class="ev">Was: in the first 60 s the repeat rule counted the incident the impact path had just created as "the last incident", so the airbag was dropped. Tests (qa/jvm, real Kotlin): DRV-12 (airbag 0.5 s after the impact), DRV-12b (right after "사고가 아니에요") and DRV-12c (11.5 s after the impact) fail on <code>5ffe61e</code> and pass on the branch; the web DRV-12 the same; DRV-01, DRV-10 and the 65 s control pass on both. Matches spec DET-04 and §4.5.</p>
+    </article>
+    <article class="card ok">
+      <div class="top"><span class="id">S-01 · Crash.kt 562–564</span><span class="st ok">fixed</span></div>
+      <h3>The photo copy runs only inside Records.write</h3>
+      <p><code>copyTo</code> creates missing parent folders, so the copy and <code>camera.sha256</code> now run inside <code>Records.write</code>. If the incident was deleted, nothing is copied and the folder stays gone; the cached shot is deleted either way. Same promise as TC-04 (PRIV-01).</p>
+      <p class="ev">Evidence: code review plus the library check in section 4. The web copy has no photo copy, so no web case covers it.</p>
+    </article>
+    <article class="card ok">
+      <div class="top"><span class="id">S-02 · Crash.kt 440–451, 477</span><span class="st ok">fixed</span></div>
+      <h3>Pre-save creates the folder only for the current incident</h3>
+      <p><code>trigger()</code> sets <code>CrashFlow.dir</code> before it starts the pre-save thread, and the thread writes inside <code>Records.write</code>. After a deletion, which clears <code>CrashFlow.dir</code> under the same lock, the pre-save writes nothing. If the deletion lands while <code>trigger()</code> is still setting up, <code>trigger()</code> also drops the incident before its screen opens (477). The one shared lock covers S-01, S-02 and TC-04.</p>
+      <p class="ev">Evidence: code review. Was theoretical (a person cannot withdraw consent within milliseconds of a crash), but would matter if deletion ever became automatic or remote.</p>
+    </article>
+    <article class="card gap">
+      <div class="top"><span class="id">G-01 · paths</span><span class="st gap">gap</span></div>
+      <h3>No case makes path C the first detector</h3>
+      <p>In every DRV case path A fires first. A soft, long impact (peak between 1.5 and 2.5 g, 15 km/h lost in 0.3 s) would exercise C alone.</p>
+      <p class="ev">Proposal: DRV-13 "soft barrier".</p>
+    </article>
+    <article class="card gap">
+      <div class="top"><span class="id">G-02 · threads</span><span class="st gap">gap</span></div>
+      <h3>Races cannot be shown by the web model</h3>
+      <p>The app runs the sensor thread, the recorder thread, the report thread and the UI at the same time over shared state. The web copy runs them one at a time, so it can only show a race where we add a pause point.</p>
+      <p class="ev">qa/jvm (real Kotlin, real threads) pauses one race on purpose: TC-04 holds the kind-write thread at its first disk call while consent is withdrawn. The other writers, the <code>trigger()</code> deletion check and the <code>kindSeq</code> ordering are checked by code review only.</p>
+    </article>
+    <article class="card gap">
+      <div class="top"><span class="id">G-03 · sensor axes</span><span class="st gap">gap</span></div>
+      <h3>Axis signs are unverified, and the web cannot catch a wrong sign</h3>
+      <p><code>RIGHT_SIGN</code> and <code>FORWARD_SIGN</code> are marked 미확인 in the code. The simulator feeds values in the app's own convention, so a sign error would still pass every case and show the wrong side on screen.</p>
+      <p class="ev">Needs one BeamNG run per side, or a measurement in a real car.</p>
+    </article>
+  </div>
+</section>
+
+<section id="port" class="col">
+  <h2>7 How the web copy differs</h2>
+  <p>Anything found only in the web copy has to be confirmed in Kotlin. Anything the web copy passes can still fail in the app because of these differences.</p>
+  <div class="tbl"><table>
+    <tr><th>Topic</th><th>App</th><th>Web copy</th><th>What it can hide</th></tr>
+    <tr><td>App code</td><td>Branch <code>qa/tester-and-fixes</code></td><td>앱 코드 switch: 공개본 <code>5ffe61e</code> or 수정본 (default); same cases on both</td><td>A fix ported to JS differently from Kotlin (Kotlin side: code review, qa/jvm)</td></tr>
+    <tr><td>Threads</td><td>Real threads, <code>@Volatile</code>, <code>@Synchronized</code> <code>trigger()</code> and <code>chooseKind()</code>, the <code>Records</code> lock</td><td>One thread; jobs take turns; pause points only where added</td><td>Races (G-02)</td></tr>
+    <tr><td>Time</td><td><code>System.currentTimeMillis()</code>, <code>Thread.sleep(100)</code> drift</td><td>A simulated clock; exactly 100 ms ticks</td><td>Timing edges at the 10 s and 60 s limits</td></tr>
+    <tr><td>Sensor input</td><td>Android sensor, about 50 Hz with jitter; unknown mounting</td><td>Exactly 50 Hz; crash pulses are half-sine shapes I chose; same axis convention as the app</td><td>Axis sign (G-03); pulse shape</td></tr>
+    <tr><td>Airbag signal</td><td>From the car; in tests the BeamNG bridge makes one</td><td>My rule: frontal Δv ≥ 20 km/h or side ≥ 18 km/h, never rear</td><td>Which crashes count as severe</td></tr>
+    <tr><td>Report job</td><td>Facts, then relay polish, camera photo, video, photo analysis</td><td>Facts only (like the public build)</td><td>The S-01 fix (no photo copy in the web copy; code review only)</td></tr>
+    <tr><td>Startup</td><td>Starts at car boot</td><td>Driving cases start the app 65 s before driving; DRV-12 starts it as the car pulls away (crash about 6 s later)</td><td>Startup window, unless a case targets it (DRV-12 does, for the F-01 fix; in qa/jvm also DRV-12b and DRV-12c)</td></tr>
+  </table></div>
+</section>
+
+<section id="coverage" class="col">
+  <h2>8 What is tested</h2>
+  <p>qa/jvm compiles the real Kotlin sources of a checkout against small Android stubs and runs them on a JVM with real threads, files and time; it was run on <code>5ffe61e</code> and on the branch. Web results are for the fixed code and are the same in Node and a real browser; the 앱 코드 switch reruns the same cases on <code>5ffe61e</code>.</p>
+  <div class="tbl"><table>
+    <tr><th>Behavior</th><th>Kotlin test</th><th>Web case</th></tr>
+    <tr><td>Sensor math, sign symmetry, vertical 3-axis</td><td>none in Gradle; qa/jvm TC-01 (real <code>ImpactSensor</code>) <span class="st ok">PASS</span> on both versions</td><td>TC-01 <span class="st ok">PASS</span></td></tr>
+    <tr><td><code>suddenDrop</code> rule</td><td><code>ReportTest</code> <code>slowSignalIsNotSuddenDrop</code></td><td>core check; never the first detector in a drive (G-01)</td></tr>
+    <tr><td>Impact path in real driving</td><td>none</td><td>DRV-01 to 05, 08, 10, 12</td></tr>
+    <tr><td>Airbag upgrade, app up 65 s</td><td>qa/jvm DRV-12 control <span class="st ok">PASS</span> on both versions</td><td>DRV-01, DRV-10 <span class="st ok">PASS</span> on both versions</td></tr>
+    <tr><td>Airbag 0.5 s after an impact, app up about 6 s → waiting incident becomes severe</td><td>qa/jvm DRV-12, and DRV-12 diag (same with the pre-save folder blocked): <span class="st ok">PASS</span> on the branch (FAIL on <code>5ffe61e</code>)</td><td>DRV-12 <span class="st ok">PASS</span> on the fixed code (FAIL on <code>5ffe61e</code>)</td></tr>
+    <tr><td>Airbag right after "사고가 아니에요", app up &lt; 60 s → second, severe incident</td><td>qa/jvm DRV-12b <span class="st ok">PASS</span> on the branch (FAIL on <code>5ffe61e</code>). The bench closes the incident with <code>CrashWatcher.cancel()</code>; the screen's button (<code>CrashActivity.dismiss()</code>) clears only the incident and leaves the save waiting; by code reading that gives the same result on both versions</td><td>none</td></tr>
+    <tr><td>Airbag 11.5 s after an impact (after the save window), app up &lt; 60 s → severe incident</td><td>qa/jvm DRV-12c <span class="st ok">PASS</span> on the branch (FAIL on <code>5ffe61e</code>)</td><td>none</td></tr>
+    <tr><td>False positives</td><td>none</td><td>DRV-06, 07, 09, 11 <span class="st ok">PASS</span></td></tr>
+    <tr><td>Save after 10 s, file set, hash</td><td>none</td><td>All detected DRV cases</td></tr>
+    <tr><td>Deletion while jobs run</td><td>qa/jvm TC-04 (the real kind-write thread, held at its first disk call) <span class="st ok">PASS</span> on the branch (FAIL on <code>5ffe61e</code>); pre-save, photo copy and the <code>trigger()</code> check by code review only</td><td>TC-04 <span class="st ok">PASS</span> on the fixed code (FAIL on <code>5ffe61e</code>)</td></tr>
+    <tr><td>Save failure shown</td><td>none</td><td>none</td></tr>
+    <tr><td>Second impact 10+ s later; airbag already on at app start (the only case the 60 s suppression still covers); two incidents in the same second</td><td>none</td><td>none</td></tr>
+  </table></div>
+</section>
+
+<section id="questions" class="col">
+  <h2>9 Questions to go through together</h2>
+  <ol class="q">
+    <li><span class="st ok">decided</span> Once a run has detected an incident, an airbag signal is never dropped, even inside the first 60 s. The 60 s suppression applies only before the first incident of a run.<span class="why">The spec says so too (DET-04; §4.5: a new airbag deployment is not suppressed). Our first choice, (a) a check for a waiting incident, covered only the 10 s wait, so an airbag after the save window was still dropped in the first 60 s (DRV-12c). The final rule is a per-run flag, <code>seenThisRun</code> (line 407, set in <code>trigger()</code> at 434): an airbag edge after the first incident turned on while the app was watching, so it is accepted at any time. It also covers an airbag right after "사고가 아니에요" (DRV-12b). The 60 s rule now guards only the case it was written for: before anything has been detected, an airbag value that was already on arrives late after an app restart. Not taken: (b) compare against the last <i>saved</i> incident; (c) treat the first airbag value after start as a baseline.</span></li>
+    <li>A second hit 10 or more seconds after the first starts a brand-new incident and resets the guide to the first question. Is that acceptable?<span class="why">Example: stopped on a highway, rear-ended 15 s later while walking through the evacuation steps. Spec DET-04 says the current repeat rule is not permanent; section 4.5 proposes grouping hits into one incident. Since the airbag change, an airbag that deploys after the save window does the same: it starts a new severe incident (DRV-12c).</span></li>
+    <li><span class="st ok">decided</span> Every job that writes into a crash folder checks again under one shared lock.<span class="why"><code>Records</code> (Consent.kt 17–28) is used by every save-path writer and by <code>Consent.deleteRecords</code>, so a late write either lands before the deletion or finds its incident gone and writes nothing. It closed TC-04, S-01 and S-02 together; a single storage queue that also runs the deletion was not needed.</span></li>
+    <li>Is detecting a 40 km/h speed bump acceptable for now?<span class="why">The 2.5 g threshold uses all three axes, so vertical jolts count (DRV-08). Spec 4.4 proposes a "suspect impact" tier.</span></li>
+    <li>Does path C catch any real crash that path A misses?<span class="why">If yes, we need DRV-13 to prove it. If no, path C only adds false-positive risk from speed glitches.</span></li>
+    <li>Who can confirm the accelerometer axis signs (G-03)?<span class="why">A wrong sign shows the impact on the wrong side of the car, in the photo guide, and in the facts sent to the phone.</span></li>
+    <li>Does the road speed limit arrive when no route is set in the car's navigation?<span class="why">The team's notes say unverified. Without it, "highway" falls back to a 30 s average speed of 80 km/h or more, and the guide asks the driver.</span></li>
+    <li>When <code>finish()</code> throws, is the driver ever told?<span class="why"><code>saveFailed</code> is set (line 413), and the strip shows "기록 저장에 실패했어요". Nothing tests it. If the failure comes before the new <code>log.json</code> replaces the old one, the folder keeps only the pre-save file (the 30 s before the crash). Spec REC-02 covers this case.</span></li>
+  </ol>
+</section>
+
+<section id="next" class="col">
+  <h2>10 After this session</h2>
+  <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+    <li>Record what we agree on in the README findings list (IDs stay the same; F-01 with the <code>seenThisRun</code> rule, F-04, S-01 and S-02 are already marked fixed).</li>
+    <li>TC-02 (a draft's ACK is not the final record's ACK) and TC-03 (retry 5 s after a failure, kept across restarts) still fail on both versions in the web copy, and are <code>BLOCKED_ADAPTER</code> in qa/jvm: they test proposed features that are not implemented yet.</li>
+    <li>Add DRV-13 (soft barrier, path C) and an "airbag already on at app start" case. After the <code>seenThisRun</code> change that restart case is the only place the 60 s suppression still acts, and no case covers it.</li>
+    <li>Add a qa/jvm variant of DRV-12b that closes the incident the way the screen's "사고가 아니에요" button does (clear the incident, keep the save waiting) instead of <code>CrashWatcher.cancel()</code>.</li>
+    <li>Check the accelerometer axis signs (G-03): one BeamNG run per side, or a measurement in a real car.</li>
+    <li>Run the Gradle unit tests, rebuild the APK from the branch, and check the airbag rule (DRV-12, 12b, 12c) and the deletion fix on the emulator or a real device.</li>
+    <li>Next walkthrough: 2 · Sync and handoff (CarSync, server, phone acknowledgements).</li>
+  </ul>
+</section>
+
+</main>
+</body>
+</html>
