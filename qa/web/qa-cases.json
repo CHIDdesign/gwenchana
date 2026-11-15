@@ -176,7 +176,7 @@
     {
       "id": "DRV-12", "type": "driving", "failClass": "공개본 5ffe61e 결함 — 켠 지 60초 안에는 충격 뒤 에어백 승격이 막힘(DET-02·DET-04). 수정본에서 고침", "title": "앱 켠 직후 정면 50 km/h · 충격 먼저, 에어백 나중", "scenario": "frontParked", "params": { "kph": 50, "gap": 60 }, "persona": "guest", "seed": 22, "warmupSec": 0,
       "expect": { "detected": true, "severe": true, "notAccidentButton": false, "firstSteps": ["PHONE", "CALM", "HAZARD"], "recordSaved": true },
-      "basis": "DRV-01 과 같은 충돌을 앱 시작 약 6초 뒤에. 명세 DET-02·DET-04: 저장 대기 중 에어백 신호가 오면 앱을 켠 뒤 지난 시간과 관계없이 심각도를 올린다. 수정본은 대기 중인 사고가 있으면 60초 억제를 건너뛴다. 공개본은 '최근 사고 60초 억제'가 방금 충격으로 잡은 사고까지 세어 승격이 막혔다"
+      "basis": "DRV-01 과 같은 충돌을 앱 시작 약 6초 뒤에. 명세 DET-02·DET-04: 저장 대기 중 에어백 신호가 오면 앱을 켠 뒤 지난 시간과 관계없이 심각도를 올린다. 수정본은 이번 실행에서 사고를 감지한 뒤의 에어백은 언제든 받는다(대기 중이면 승격). 공개본은 '최근 사고 60초 억제'가 방금 충격으로 잡은 사고까지 세어 승격이 막혔다"
     }
   ]
 }
