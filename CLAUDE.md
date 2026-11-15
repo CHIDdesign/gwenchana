@@ -127,7 +127,7 @@ tools\run.cmd .\gradlew.bat :app:assembleRelease :phone:assembleRelease -Ppublic
 ```
 
 - 스택: AGP 8.8.2, Kotlin 2.1.21, Gradle 8.10.2, JDK 17, compile/target 35, min 28. Pleos Maven `https://nexus-playground.pleos.ai/repository/maven-releases/`.
-- **공개 APK는 반드시 `-Ppublic`**(relay·Pleos 키가 빠짐). 결과물은 `apk/gwenchana_car_release.apk`, `apk/gwenchana_phone_release.apk`로 복사한다(GitHub Releases v1.0.0은 아직 없음, 차 APK 90MB. 공식 규정 파일명은 `apk/팀명_앱이름_release.apk`, 팀 이름 확정 뒤 변경). release끼리는 평문 통신이 막혀 휴대폰 연동이 안 된다(https 서버 전까지 debug만). 빌드 뒤 dex에서 비밀값과 게임 클래스(`SimProfile`·`ScreenCover`·`NaviActivity`·`TestModeSource`·`BeamNgLink`·`SimReceiver`), 수신 신호(`RESET`·`TEST_CRASH`)가 없는지 검사한다.
+- **공개 APK는 반드시 `-Ppublic`**(relay·Pleos 키가 빠짐). 결과물은 `apk/그럼팀_괜차나_release.apk`(차), `apk/그럼팀_괜차나휴대폰_release.apk`(휴대폰)로 복사한다(공식 규정 `팀명_앱이름_release.apk`, 2026-11-15 이름 변경)(GitHub Releases v1.0.0은 아직 없음, 차 APK 90MB. 공식 규정 파일명은 `apk/팀명_앱이름_release.apk`, 팀 이름 확정 뒤 변경). release끼리는 평문 통신이 막혀 휴대폰 연동이 안 된다(https 서버 전까지 debug만). 빌드 뒤 dex에서 비밀값과 게임 클래스(`SimProfile`·`ScreenCover`·`NaviActivity`·`TestModeSource`·`BeamNgLink`·`SimReceiver`), 수신 신호(`RESET`·`TEST_CRASH`)가 없는지 검사한다.
 - 시연: 앱 빌드 → BeamNG 켜고 자유 주행 → `시작.cmd`(에뮬레이터 2대, 앱 설치, 브리지, 동기화 서버). 게임 없이: 차 앱에 `com.askthecar.TEST_CRASH` 신호(README_TEST.md).
 - 자동 시험: 게임을 `-enablemcp`로 켜고 `cd game\bridge` → `python crash_suite.py` 또는 `python crash_test.py`.
 - 차 에뮬레이터 `emulator-5554`(앱 파일은 사용자 10), 휴대폰 `emulator-5556`. adb는 PATH에 없다: `tools\run.cmd adb -s emulator-5554 ...`(둘 다 켜져 있으면 `-s` 필수). 앱 파일 읽기: `adb exec-out run-as com.askthecar --user 10 cat files/...`. `adb screencap`은 검게 나온다 → `adb emu screenrecord screenshot <폴더>`. Git Bash에서는 `export MSYS_NO_PATHCONV=1`.

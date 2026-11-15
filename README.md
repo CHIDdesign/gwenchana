@@ -154,8 +154,8 @@ flowchart LR
 
 | 파일 | 내용 |
 |---|---|
-| [`apk/gwenchana_car_release.apk`](apk/gwenchana_car_release.apk) | 차 앱 (Pleos Connect 에뮬레이터용, release) |
-| [`apk/gwenchana_phone_release.apk`](apk/gwenchana_phone_release.apk) | 휴대폰 앱 (release) |
+| [`apk/그럼팀_괜차나_release.apk`](apk/%EA%B7%B8%EB%9F%BC%ED%8C%80_%EA%B4%9C%EC%B0%A8%EB%82%98_release.apk) | 차 앱 (Pleos Connect 에뮬레이터용, release) |
+| [`apk/그럼팀_괜차나휴대폰_release.apk`](apk/%EA%B7%B8%EB%9F%BC%ED%8C%80_%EA%B4%9C%EC%B0%A8%EB%82%98%ED%9C%B4%EB%8C%80%ED%8F%B0_release.apk) | 휴대폰 앱 (release) |
 
 패키지 이름은 개발 때 정한 `com.askthecar`입니다.
 
@@ -163,14 +163,14 @@ flowchart LR
 
 ### 1. Pleos Connect 에뮬레이터
 
-Pleos 개발자 문서대로 Android 14(API 34) Pleos Connect 시스템 이미지로 기기를 만듭니다. 개발에 쓴 설정은 2560×1440, 160dpi, RAM 4GB, x86_64, Cold boot, AVD 이름 `Pleos_Connect`입니다. 켜고 홈 화면이 뜰 때까지 기다립니다.
+Pleos 개발자 문서대로 Android 14(API 34) Pleos Connect v2.1.0 시스템 이미지로 기기를 만듭니다. 개발에 쓴 설정은 2560×1440, 160dpi, RAM 4GB, x86_64, Cold boot, AVD 이름 `Pleos_Connect`입니다. 켜고 홈 화면이 뜰 때까지 기다립니다.
 
 ### 2. 차 앱 설치
 
 에뮬레이터 이름이 다르면 `-s` 값을 바꾸세요.
 
 ```bash
-adb -s emulator-5554 install -r -g apk/gwenchana_car_release.apk
+adb -s emulator-5554 install -r -g apk/그럼팀_괜차나_release.apk
 ```
 
 사고 화면이 다른 앱 위에 뜨도록 허용합니다. 설치할 때마다 한 번씩 합니다.
@@ -228,7 +228,7 @@ python game/bridge/sync_server.py --one-account
 
 | 항목 | 값 |
 |---|---|
-| 검증한 기기 | Pleos Connect 에뮬레이터(Android 14 / API 34, x86_64, 2560×1440 160dpi, RAM 4GB), 운전자 사용자 10. 휴대폰은 Android 에뮬레이터 |
+| 검증한 기기 | Pleos Connect v2.1.0 에뮬레이터(Android 14 / API 34, x86_64, 2560×1440 160dpi, RAM 4GB), 운전자 사용자 10. 휴대폰은 Android 에뮬레이터 |
 | 앱 | `com.askthecar` 0.1.0, minSdk 28, target/compile 35, ABI arm64-v8a·x86_64 |
 | 빌드 도구 | JDK 17, Gradle 8.10.2(wrapper), AGP 8.8.2, Kotlin 2.1.21 |
 | 차 앱 권한 | Pleos `CAR_DRIVE`·`CAR_LIGHTS`·`CAR_SAFETY`·`PRIVATE_CAR_SAFETY`·`CAR_DOORS`·`CONTROL_CAR_DOORS`·`TTS_SERVICE`·`STT_SERVICE`·`FUSED_LOCATION`·`NAVI_ROUTE`, AAOS `CAR_SPEED`·`CAR_POWERTRAIN`, 마이크, 카메라, 통화 상태, 포그라운드 서비스, 알림, 다른 앱 위 표시, 부팅 후 시작 |
