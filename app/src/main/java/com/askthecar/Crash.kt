@@ -97,19 +97,21 @@ object CrashFlow {
     /** 운전자가 직접 골랐으면 추정이 나중에 바뀌어도 덮어쓰지 않음 */
     @Volatile var kindChosen = false
     /** kind.txt 쓰기 순서: 스레드가 늦게 끝나도 마지막으로 고른 값만 남는다 */
-    private val kindSeq = java.util.concurrent.atomic.AtomicInteger()
+    private val kindSeq = java.util.concurrent.ConcurrentHashMap<File, Int>()
     @Synchronized fun chooseKind(k: CrashKind, byDriver: Boolean = true) {
         if (!byDriver && kindChosen) return // 운전자가 이미 골랐으면 추정으로 덮어쓰지 않는다
         if (byDriver) kindChosen = true
         kind = k
         CarSync.publish() // 휴대폰 앱도 같은 종류·단계로
         val text = k.name + if (kindChosen) "" else " guess"
-        val seq = kindSeq.incrementAndGet()
         // 동의 철회·"모두 지우기"로 지운 사고 폴더를 다시 만들지 않는다. 지워졌으면 그냥 끝내고, 쓸 때는 삭제와 같은 잠금 안에서 다시 확인(Records)
-        dir?.let { d -> thread(isDaemon = true) { runCatching {
-            if (!d.exists() && CrashFlow.dir != d) return@runCatching
-            Records.write(d) { if (seq == kindSeq.get()) File(d, "kind.txt").writeText(text) }
-        } } }
+        dir?.let { d ->
+            val seq = kindSeq.merge(d, 1) { a, b -> a + b } // 사고 폴더마다 순서를 센다
+            thread(isDaemon = true) { runCatching {
+                if (!d.exists() && CrashFlow.dir != d) return@runCatching
+                Records.write(d) { if (seq == kindSeq[d]) File(d, "kind.txt").writeText(text) }
+            } }
+        }
     }
     /** 사고 기록·재현 준비 진행도 0..1 (재현 화면의 "준비 중" 게이지) */
     var progress by mutableStateOf(0f)
@@ -196,7 +198,9 @@ object Statement {
         override fun onStartedRecognition() { status = "듣고 있어요. 사고 상황을 말씀해 주세요." }
         override fun onUpdated(stt: String, completed: Boolean) {
             status = "\u201c$stt\u201d"
-            if (completed && stt.isNotBlank()) dir?.let { File(it, "statement.txt").writeText(stt); heard = true; status = "진술을 저장했어요."; CarSync.publish() }
+            // 진술도 삭제와 같은 잠금으로 쓴다. 지운 사고면 쓰지 않고 "저장했어요"라고 하지 않는다(예외로 앱이 멈추지 않게)
+            if (completed && stt.isNotBlank()) dir?.let { d -> runCatching { Records.write(d) { File(d, "statement.txt").writeText(stt) } }.getOrNull() }
+                ?.let { heard = true; status = "진술을 저장했어요."; CarSync.publish() }
         }
         override fun onUpdatedEpdData(on: Long, off: Long) {}
         override fun onUpdatedRms(rms: Double) {}
@@ -470,7 +474,7 @@ class CrashWatcher(private val ctx: Context, private val onLeftReverse: () -> Un
         CrashFlow.record = null
         CrashFlow.status = "사고 감지: $reason"
         // 감지하는 사이 동의 철회·"모두 지우기"가 끝났으면(CrashFlow.dir 가 비워짐) 사고를 다시 띄우지 않는다
-        if (CrashFlow.dir != dir) { pendingSince = null; CrashFlow.setIncident { cur -> if (cur?.t == t) null else cur }; return }
+        if (CrashFlow.dir == null) { pendingSince = null; CrashFlow.setIncident { cur -> if (cur?.t == t) null else cur }; return }
         onIncident(incident)
     }
 
@@ -521,7 +525,11 @@ class CrashWatcher(private val ctx: Context, private val onLeftReverse: () -> Un
             val logFile = File(dir, "log.json").apply { writeAtomic(toJson(log)) }
             File(dir, "log.sha256").writeText(sha256(logFile)) // 잠금: 나중에 바뀌었는지 확인용
             saveImpact(dir, t, peakG, impactDeg)
-        } ?: return
+        } ?: run {
+            // 지워졌거나 동의가 꺼져서 안 쓴 것이면 조용히 끝낸다. 지금 사고인데 폴더를 못 만든 것이면 저장 실패로 알린다(saveFailed)
+            if (CrashFlow.dir == dir && Consent.allowed(Consent.Item.DRIVE)) throw java.io.IOException("사고 기록 폴더를 만들 수 없음: ${dir.name}")
+            return
+        }
         if (current()) { CrashFlow.progress = 0.25f; CrashFlow.status = "기록 저장 완료. 경위서 만드는 중…" }
 
         // 만드는 동안 기록이 지워질 수 있다(모두 지우기·동의 철회): 파일 쓰기 예외로 앱이 죽지 않게
