@@ -1,6 +1,6 @@
 # 괜차나 시험 도구 (qa/)
 
-앱 빌드와 분리된 시험 도구 모음이에요. Gradle(`settings.gradle.kts`)은 `:app`, `:phone`만 빌드하므로, 이 폴더는 APK에 들어가지 않고 앱 빌드에도 영향을 주지 않아요.
+앱 빌드와 분리된 시험 도구 모음이에요. 이번 QA의 최종 보고는 [REPORT.md](REPORT.md)에 있어요. Gradle(`settings.gradle.kts`)은 `:app`, `:phone`만 빌드하므로, 이 폴더는 APK에 들어가지 않고 앱 빌드에도 영향을 주지 않아요.
 
 | 폴더 | 내용 | 실행 |
 |---|---|---|
